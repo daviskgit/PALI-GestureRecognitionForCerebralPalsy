@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import numpy as np
-from collections import deque
+from collections import deque, Counter
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
 from sklearn.neighbors import KNeighborsClassifier
@@ -13,31 +13,30 @@ load_dotenv()
 app = FastAPI()
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-SESSIONS_REQUIRED = 5        # sessions per gesture
-FRAMES_PER_SESSION = 50      # frames per session
-MIN_SESSIONS_TO_TRAIN = 3    # minimum sessions needed to allow training
-DEBOUNCE_LEN = 10
+SESSIONS_REQUIRED    = 5
+FRAMES_PER_SESSION   = 50
+MIN_SESSIONS_TO_TRAIN = 3
+DEBOUNCE_LEN         = 12   # frames in primary queue
+SMOOTH_WINDOW        = 5    # extra temporal smoothing window
+CONFIDENCE_THRESH    = 0.70 # fraction of queue that must agree to trigger
 
 # ── State ─────────────────────────────────────────────────────────────────────
 MODE = "NEUTRAL"
 model: KNeighborsClassifier | None = None
 
-# neutral_data: flat list of feature vectors
-neutral_data: list[list[float]] = []
-
-# gesture_data: gesture_id -> list of feature vectors (across all sessions)
-gesture_data: dict[str, list[list[float]]] = {}
-
-# session tracking: gesture_id -> list of session frame counts
+neutral_data:     list[list[float]] = []
+gesture_data:     dict[str, list[list[float]]] = {}
 gesture_sessions: dict[str, list[int]] = {}
 
-active_gesture_id: str | None = None
-active_session_idx: int | None = None   # which session slot is currently recording
+active_gesture_id:   str | None = None
+active_session_idx:  int | None = None
 
-pred_queue: deque = deque(maxlen=DEBOUNCE_LEN)
+# Two-stage smoothing
+pred_queue:   deque = deque(maxlen=DEBOUNCE_LEN)
+smooth_queue: deque = deque(maxlen=SMOOTH_WINDOW)  # voted labels
+
 gesture_phrases: dict[str, str] = {}
 active_ws: WebSocket | None = None
-
 
 # ── Feature Engineering ───────────────────────────────────────────────────────
 
@@ -48,10 +47,10 @@ def euclidean(a, b) -> float:
 def extract_face_features(face: dict) -> list[float] | None:
     """5 scale-invariant face features."""
     try:
-        mouth_h = euclidean(face["top_lip"], face["bottom_lip"])
-        mouth_w = euclidean(face["left_mouth"], face["right_mouth"])
-        denom = mouth_w + 1e-6
-        mar = mouth_h / denom
+        mouth_h  = euclidean(face["top_lip"],      face["bottom_lip"])
+        mouth_w  = euclidean(face["left_mouth"],   face["right_mouth"])
+        denom    = mouth_w + 1e-6
+        mar       = mouth_h / denom
         left_ear  = euclidean(face["left_eye_top"],   face["left_eye_bottom"])  / denom
         right_ear = euclidean(face["right_eye_top"],  face["right_eye_bottom"]) / denom
         left_brow = euclidean(face["left_eyebrow"],   face["left_eye_top"])     / denom
@@ -62,19 +61,12 @@ def extract_face_features(face: dict) -> list[float] | None:
 
 
 def extract_hand_features(hands: list[dict]) -> list[float]:
-    """
-    10 scale-invariant hand features per hand slot (left, right).
-    Each hand: 5 fingertip curl ratios normalised by palm width.
-    If a hand is absent, zeros are used so the vector length stays fixed.
-    """
-    # fingertip indices in MediaPipe Hand landmark set (21 points)
-    # We encode as keys passed from JS: wrist, thumb_tip, index_tip,
-    # middle_tip, ring_tip, pinky_tip, index_mcp, pinky_mcp, thumb_ip
+    """10 scale-invariant hand features (left + right slots)."""
     def hand_features(h: dict | None) -> list[float]:
         if h is None:
             return [0.0] * 5
         try:
-            palm_w = euclidean(h["index_mcp"], h["pinky_mcp"]) + 1e-6
+            palm_w      = euclidean(h["index_mcp"], h["pinky_mcp"]) + 1e-6
             thumb_curl  = euclidean(h["thumb_tip"],  h["wrist"]) / palm_w
             index_curl  = euclidean(h["index_tip"],  h["wrist"]) / palm_w
             middle_curl = euclidean(h["middle_tip"], h["wrist"]) / palm_w
@@ -90,11 +82,10 @@ def extract_hand_features(hands: list[dict]) -> list[float]:
 
 
 def build_feature_vector(face: dict | None, hands: list[dict]) -> list[float] | None:
-    """Combined 15-dim feature vector. Returns None only if face is missing."""
+    """Combined 15-dim feature vector. Returns None only if both face and hands absent."""
     face_feats = extract_face_features(face) if face else None
     hand_feats = extract_hand_features(hands)
     if face_feats is None:
-        # Still usable if we have at least one hand
         if any(h != 0.0 for h in hand_feats):
             face_feats = [0.0] * 5
         else:
@@ -110,18 +101,23 @@ def train_model() -> bool:
         return False
     X, y = [], []
     for feat in neutral_data:
-        X.append(feat)
-        y.append("neutral")
+        X.append(feat); y.append("neutral")
     for gid, frames in gesture_data.items():
         for feat in frames:
-            X.append(feat)
-            y.append(gid)
+            X.append(feat); y.append(gid)
     if len(set(y)) < 2 or len(X) < 10:
         return False
     clf = KNeighborsClassifier(n_neighbors=min(5, len(X)))
     clf.fit(X, y)
     model = clf
     return True
+
+
+def smoothed_predict(raw_label: str) -> str:
+    """Apply temporal smoothing over SMOOTH_WINDOW recent raw predictions."""
+    smooth_queue.append(raw_label)
+    counts = Counter(smooth_queue)
+    return counts.most_common(1)[0][0]
 
 
 # ── Audio Delivery ─────────────────────────────────────────────────────────────
@@ -149,11 +145,12 @@ async def fire_trigger(gesture_id: str, ws: WebSocket):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global MODE, neutral_data, gesture_data, gesture_sessions
-    global active_gesture_id, active_session_idx, pred_queue, active_ws, model
+    global active_gesture_id, active_session_idx, pred_queue, smooth_queue, active_ws, model
 
     await websocket.accept()
     active_ws = websocket
     pred_queue.clear()
+    smooth_queue.clear()
 
     try:
         while True:
@@ -166,9 +163,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 if cmd == "set_mode":
                     MODE = msg["mode"]
-                    active_gesture_id = msg.get("gesture_id")
+                    active_gesture_id  = msg.get("gesture_id")
                     active_session_idx = msg.get("session_idx")
                     pred_queue.clear()
+                    smooth_queue.clear()
                     await websocket.send_text(json.dumps({
                         "status": "mode_set", "mode": MODE,
                         "gesture_id": active_gesture_id,
@@ -179,14 +177,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     gesture_phrases[msg["gesture_id"]] = msg["phrase"]
 
                 elif cmd == "clear_session":
-                    gid = msg["gesture_id"]
+                    gid  = msg["gesture_id"]
                     sidx = msg["session_idx"]
-                    # Remove frames for this session slot
-                    # We track per-session counts so we can remove them
                     if gid in gesture_sessions and sidx < len(gesture_sessions[gid]):
                         frames_in_slot = gesture_sessions[gid][sidx]
-                        # Remove the last N frames added for this session
-                        # (sessions are appended sequentially)
                         offset = sum(gesture_sessions[gid][:sidx])
                         del gesture_data[gid][offset:offset + frames_in_slot]
                         gesture_sessions[gid][sidx] = 0
@@ -204,8 +198,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     gesture_phrases.clear()
                     model = None
                     pred_queue.clear()
+                    smooth_queue.clear()
                     MODE = "NEUTRAL"
-                    active_gesture_id = None
+                    active_gesture_id  = None
                     active_session_idx = None
 
                 elif cmd == "train":
@@ -213,6 +208,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     if success:
                         MODE = "INFERENCE"
                         pred_queue.clear()
+                        smooth_queue.clear()
                         await websocket.send_text(json.dumps({
                             "status": "trained",
                             "neutral_frames": len(neutral_data),
@@ -221,7 +217,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     else:
                         await websocket.send_text(json.dumps({
                             "status": "train_failed",
-                            "reason": "Not enough data — need neutral + at least one gesture with 3+ sessions",
+                            "reason": "Need neutral + at least one gesture with 3+ complete sessions",
                         }))
 
                 elif cmd == "get_status":
@@ -253,14 +249,14 @@ async def websocket_endpoint(websocket: WebSocket):
                         "count": len(neutral_data),
                     }))
 
-            elif MODE == "TRAIN_GESTURE" and active_gesture_id is not None and active_session_idx is not None:
+            elif MODE == "TRAIN_GESTURE" and active_gesture_id and active_session_idx is not None:
                 gid  = active_gesture_id
                 sidx = active_session_idx
 
                 gesture_data.setdefault(gid, []).append(features)
                 if gid not in gesture_sessions:
                     gesture_sessions[gid] = [0] * SESSIONS_REQUIRED
-                gesture_sessions[gid][sidx] = gesture_sessions[gid][sidx] + 1
+                gesture_sessions[gid][sidx] += 1
                 count = gesture_sessions[gid][sidx]
 
                 await websocket.send_text(json.dumps({
@@ -271,7 +267,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     "done": count >= FRAMES_PER_SESSION,
                 }))
 
-                # Auto-stop when session is full
                 if count >= FRAMES_PER_SESSION:
                     MODE = "NEUTRAL"
                     active_session_idx = None
@@ -284,25 +279,32 @@ async def websocket_endpoint(websocket: WebSocket):
                     }))
 
             elif MODE == "INFERENCE" and model is not None:
-                pred = model.predict([features])[0]
-                pred_queue.append(pred)
+                raw_pred = model.predict([features])[0]
 
-                if len(pred_queue) == DEBOUNCE_LEN and pred != "neutral":
-                    counts: dict[str, int] = {}
-                    for p in pred_queue:
-                        counts[p] = counts.get(p, 0) + 1
+                # Stage 1: raw queue
+                pred_queue.append(raw_pred)
+
+                # Stage 2: smoothed label (majority vote over last SMOOTH_WINDOW raws)
+                smoothed = smoothed_predict(raw_pred)
+
+                if (len(pred_queue) == DEBOUNCE_LEN and smoothed != "neutral"):
+                    counts: dict[str, int] = Counter(pred_queue)
                     top_label, top_count = max(counts.items(), key=lambda x: x[1])
-                    if top_count == DEBOUNCE_LEN and top_label != "neutral":
+                    confidence = top_count / DEBOUNCE_LEN
+                    if (top_label != "neutral" and confidence >= CONFIDENCE_THRESH):
                         pred_queue.clear()
+                        smooth_queue.clear()
                         asyncio.create_task(fire_trigger(top_label, websocket))
                         await websocket.send_text(json.dumps({
                             "status": "triggered",
                             "gesture": top_label,
+                            "confidence": round(confidence, 2),
                         }))
 
                 await websocket.send_text(json.dumps({
                     "status": "prediction",
-                    "label": pred,
+                    "label": smoothed,
+                    "raw_label": raw_pred,
                     "queue_fill": len(pred_queue),
                 }))
 

@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GestureVoice — Face & Hand Gesture TTS</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #2a2a38;
+    --accent: #00f5a0;
+    --accent2: #7b61ff;
+    --hand-l: #f5a000;
+    --hand-r: #00b4f5;
+    --warn: #ff6b35;
+    --text: #e8e8f0;
+    --muted: #6b6b80;
+    --font-ui: 'Syne', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-ui);
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    z-index: 10;
+  }
+  .logo { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.02em; }
+  .logo span { color: var(--accent); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .ws-badge {
+    display: flex; align-items: center; gap: 7px;
+    font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted);
+  }
+  .ws-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--warn); transition: background 0.3s;
+  }
+  .ws-dot.connected { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .legend {
+    display: flex; gap: 10px;
+    font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  main {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    height: calc(100vh - 53px);
+    overflow: hidden;
+  }
+
+  .canvas-pane {
+    position: relative; background: #000;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  video { display: none; }
+  #overlay { width: 100%; height: 100%; object-fit: cover; }
+
+  .hud {
+    position: absolute; top: 16px; left: 16px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .hud-pill {
+    background: rgba(0,0,0,0.7); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px 10px;
+    font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .hud-pill .val { color: var(--text); font-weight: 700; }
+
+  .mode-badge {
+    position: absolute; bottom: 16px; left: 16px;
+    padding: 6px 14px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 0.75rem;
+    font-weight: 700; letter-spacing: 0.08em;
+    background: rgba(0,0,0,0.75); border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+  .mode-badge.neutral   { color: var(--muted); }
+  .mode-badge.training  { color: var(--warn); border-color: var(--warn); box-shadow: 0 0 12px rgba(255,107,53,0.3); }
+  .mode-badge.inference { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(0,245,160,0.3); }
+
+  .trigger-flash {
+    position: absolute; inset: 0; background: var(--accent);
+    opacity: 0; pointer-events: none; transition: opacity 0.05s;
+  }
+  .trigger-flash.fire { opacity: 0.08; }
+
+  /* Sidebar */
+  .sidebar {
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .section { padding: 18px 20px; border-bottom: 1px solid var(--border); }
+  .section-title {
+    font-size: 0.65rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 9px 16px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--text);
+    font-family: var(--font-ui); font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; width: 100%; margin-bottom: 8px;
+  }
+  .btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn:active { transform: scale(0.98); }
+  .btn.accent { background: var(--accent); color: #000; border-color: var(--accent); }
+  .btn.accent:hover { background: #00dba0; }
+  .btn.danger { border-color: #ff4545; color: #ff4545; }
+  .btn.danger:hover { background: rgba(255,69,69,0.1); }
+  .btn:disabled { opacity: 0.35; pointer-events: none; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row .btn { margin-bottom: 0; }
+
+  /* Neutral progress */
+  .progress-wrap {
+    margin: 8px 0; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 4px; height: 8px; overflow: hidden;
+  }
+  .progress-bar { height: 100%; width: 0%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+  .progress-label {
+    font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted);
+    margin-top: 4px; display: flex; justify-content: space-between;
+  }
+
+  /* Gesture cards */
+  .gesture-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .gesture-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px; transition: border-color 0.2s;
+  }
+  .gesture-card.active-rec { border-color: var(--accent2); }
+
+  .gesture-card-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+  }
+  .gesture-label { font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .gesture-id-chip {
+    background: var(--accent2); color: #fff;
+    font-family: var(--font-mono); font-size: 0.6rem;
+    padding: 2px 7px; border-radius: 10px;
+  }
+
+  .gesture-card input[type="text"] {
+    width: 100%; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text);
+    font-family: var(--font-ui); font-size: 0.78rem;
+    padding: 7px 10px; margin-bottom: 10px; outline: none; transition: border-color 0.15s;
+  }
+  .gesture-card input[type="text"]:focus { border-color: var(--accent2); }
+  .gesture-card input[type="text"]::placeholder { color: var(--muted); }
+
+  /* Session slots */
+  .sessions-label {
+    font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--muted); margin-bottom: 6px; letter-spacing: 0.08em;
+  }
+  .session-slots { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+  .session-slot {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .session-num {
+    font-family: var(--font-mono); font-size: 0.6rem;
+    color: var(--muted); width: 14px; text-align: right; flex-shrink: 0;
+  }
+  .session-bar-wrap {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 3px; height: 6px; overflow: hidden;
+  }
+  .session-bar {
+    height: 100%; width: 0%; border-radius: 3px;
+    background: var(--accent2); transition: width 0.2s;
+  }
+  .session-bar.complete { background: var(--accent); }
+  .session-rec-btn {
+    flex-shrink: 0;
+    padding: 3px 9px; border-radius: 4px;
+    border: 1px solid var(--border); background: var(--surface);
+    color: var(--muted); font-family: var(--font-mono); font-size: 0.6rem;
+    cursor: pointer; transition: all 0.15s; white-space: nowrap;
+  }
+  .session-rec-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .session-rec-btn.recording { border-color: var(--warn); color: var(--warn); background: rgba(255,107,53,0.1); }
+  .session-rec-btn.done { border-color: var(--accent); color: var(--accent); }
+  .session-count {
+    font-family: var(--font-mono); font-size: 0.58rem;
+    color: var(--muted); width: 42px; text-align: right; flex-shrink: 0;
+  }
+
+  .gesture-footer { display: flex; gap: 8px; align-items: center; }
+  .gesture-total {
+    font-family: var(--font-mono); font-size: 0.62rem; color: var(--muted); flex: 1;
+  }
+  .del-btn {
+    padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border);
+    background: transparent; color: var(--muted);
+    font-family: var(--font-mono); font-size: 0.6rem; cursor: pointer; transition: all 0.15s;
+  }
+  .del-btn:hover { border-color: #ff4545; color: #ff4545; }
+
+  /* Inference */
+  #pred-display {
+    font-family: var(--font-mono); font-size: 0.9rem; font-weight: 700;
+    color: var(--muted); padding: 10px 0 0; min-height: 28px; transition: color 0.2s;
+  }
+  #pred-display.active { color: var(--accent); }
+  .queue-bar { display: flex; gap: 3px; margin-top: 6px; }
+  .q-seg { flex: 1; height: 4px; background: var(--border); border-radius: 2px; transition: background 0.15s; }
+  .q-seg.lit { background: var(--accent2); }
+  .q-seg.lit.neutral { background: var(--muted); }
+
+  /* Log */
+  #log {
+    font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted);
+    display: flex; flex-direction: column-reverse; gap: 3px;
+    max-height: 120px; overflow-y: auto;
+  }
+  #log::-webkit-scrollbar { width: 2px; }
+  #log::-webkit-scrollbar-thumb { background: var(--border); }
+  .log-entry { padding: 1px 0; }
+  .log-entry.ok { color: var(--accent); }
+  .log-entry.warn { color: var(--warn); }
+  .log-entry.trigger { color: #fff; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Gesture<span>Voice</span></div>
+  <div class="header-right">
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> face</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--hand-l)"></div> left hand</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--hand-r)"></div> right hand</div>
+    </div>
+    <div class="ws-badge">
+      <div class="ws-dot" id="wsDot"></div>
+      <span id="wsLabel">DISCONNECTED</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="canvas-pane">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="overlay"></canvas>
+    <div class="trigger-flash" id="triggerFlash"></div>
+    <div class="hud">
+      <div class="hud-pill">FPS <span class="val" id="fpsVal">0</span></div>
+      <div class="hud-pill">FACE <span class="val" id="faceVal">—</span></div>
+      <div class="hud-pill">HANDS <span class="val" id="handsVal">0</span></div>
+    </div>
+    <div class="mode-badge neutral" id="modeBadge">NEUTRAL</div>
+  </div>
+
+  <aside class="sidebar">
+
+    <div class="section">
+      <div class="section-title">Step 1 — Neutral Baseline</div>
+      <button class="btn" id="btnTrainNeutral">⬤ Record Neutral (0 frames)</button>
+      <div class="progress-wrap"><div class="progress-bar" id="neutralBar"></div></div>
+      <div class="progress-label">
+        <span>relax face, hands still</span>
+        <span id="neutralCount">0 / 50</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Step 2 — Train Gestures</div>
+      <div class="gesture-list" id="gestureList"></div>
+      <button class="btn" id="btnAddGesture" style="margin-top:10px;">+ Add Gesture</button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Step 3 — Model</div>
+      <button class="btn accent" id="btnTrain" disabled>▶ Train & Start Inference</button>
+      <button class="btn danger" id="btnReset">✕ Reset Everything</button>
+      <div id="pred-display">—</div>
+      <div class="queue-bar" id="queueBar"></div>
+    </div>
+
+    <div class="section" style="flex:1;">
+      <div class="section-title">Log</div>
+      <div id="log"></div>
+    </div>
+
+  </aside>
+</main>
+
+<script type="module">
+import {
+  FaceLandmarker,
+  HandLandmarker,
+  FilesetResolver,
+  DrawingUtils,
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
+
+// ── Config ─────────────────────────────────────────────────────────────────
+const SESSIONS_REQUIRED  = 5;
+const FRAMES_PER_SESSION = 50;
+const MIN_SESSIONS       = 3;   // to unlock train button
+const QUEUE_LEN          = 10;
+
+// Face landmark indices
+const FACE_IDX = {
+  top_lip: 13, bottom_lip: 14,
+  left_mouth: 61, right_mouth: 291,
+  left_eye_top: 159, left_eye_bottom: 145,
+  right_eye_top: 386, right_eye_bottom: 374,
+  left_eyebrow: 70, right_eyebrow: 300,
+};
+
+// Hand landmark indices (MediaPipe 21-point hand model)
+const HAND_IDX = {
+  wrist: 0,
+  thumb_tip: 4, index_tip: 8, middle_tip: 12, ring_tip: 16, pinky_tip: 20,
+  index_mcp: 5, pinky_mcp: 17, middle_tip_alt: 12,
+};
+
+// ── DOM ────────────────────────────────────────────────────────────────────
+const video    = document.getElementById("video");
+const canvas   = document.getElementById("overlay");
+const ctx      = canvas.getContext("2d");
+const wsDot    = document.getElementById("wsDot");
+const wsLabel  = document.getElementById("wsLabel");
+const modeBadge= document.getElementById("modeBadge");
+const fpsVal   = document.getElementById("fpsVal");
+const faceVal  = document.getElementById("faceVal");
+const handsVal = document.getElementById("handsVal");
+const neutralBar = document.getElementById("neutralBar");
+const neutralCountEl = document.getElementById("neutralCount");
+const btnTrainNeutral= document.getElementById("btnTrainNeutral");
+const btnAddGesture  = document.getElementById("btnAddGesture");
+const btnTrain       = document.getElementById("btnTrain");
+const btnReset       = document.getElementById("btnReset");
+const gestureList    = document.getElementById("gestureList");
+const predDisplay    = document.getElementById("pred-display");
+const queueBar       = document.getElementById("queueBar");
+const triggerFlash   = document.getElementById("triggerFlash");
+
+// ── State ──────────────────────────────────────────────────────────────────
+let socket = null;
+let faceLandmarker = null;
+let handLandmarker = null;
+let mode = "NEUTRAL";
+let neutralFrames = 0;
+let gestureCards = [];        // [{id, phraseInput, sessionBars, sessionBtns, sessionCounts, totalEl}]
+let gestureSessionData = {};  // id -> [count0, count1, count2, count3, count4]
+let gestureIdCounter = 1;
+let activeGestureId = null;
+let activeSessionIdx = null;
+let queueFill = 0;
+
+// FPS
+let lastT = performance.now(), frameCount = 0;
+
+// ── Logging ────────────────────────────────────────────────────────────────
+function log(msg, cls = "") {
+  const el = document.createElement("div");
+  el.className = "log-entry " + cls;
+  el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  document.getElementById("log").prepend(el);
+}
+
+// ── WebSocket ──────────────────────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  socket = new WebSocket(`${proto}://${location.host}/ws`);
+  socket.binaryType = "blob";
+
+  socket.onopen = () => {
+    wsDot.classList.add("connected");
+    wsLabel.textContent = "CONNECTED";
+    log("WebSocket connected", "ok");
+    sendCmd({ command: "get_status" });
+  };
+  socket.onclose = () => {
+    wsDot.classList.remove("connected");
+    wsLabel.textContent = "DISCONNECTED";
+    log("Disconnected — retrying…", "warn");
+    setTimeout(connectWS, 2000);
+  };
+  socket.onerror = () => log("WebSocket error", "warn");
+  socket.onmessage = (evt) => {
+    if (evt.data instanceof Blob) { playBlob(evt.data); return; }
+    try { handleMsg(JSON.parse(evt.data)); } catch {}
+  };
+}
+
+function sendCmd(obj) {
+  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(obj));
+}
+
+function sendFrame(face, hands) {
+  if (socket?.readyState === WebSocket.OPEN)
+    socket.send(JSON.stringify({ face, hands }));
+}
+
+// ── Server messages ────────────────────────────────────────────────────────
+function handleMsg(msg) {
+  if (msg.status === "mode_set") { mode = msg.mode; updateModeBadge(); }
+
+  if (msg.status === "collecting") {
+    if (msg.label === "neutral") {
+      neutralFrames = msg.count;
+      updateNeutralUI();
+    } else {
+      const sidx = msg.session_idx;
+      gestureSessionData[msg.label] = gestureSessionData[msg.label] || Array(SESSIONS_REQUIRED).fill(0);
+      gestureSessionData[msg.label][sidx] = msg.count;
+      updateSessionUI(msg.label, sidx, msg.count, false);
+    }
+    updateTrainButton();
+  }
+
+  if (msg.status === "session_complete") {
+    const { gesture_id, session_idx, sessions } = msg;
+    gestureSessionData[gesture_id] = sessions;
+    updateSessionUI(gesture_id, session_idx, FRAMES_PER_SESSION, true);
+    // clear active recording state
+    if (activeGestureId === gesture_id && activeSessionIdx === session_idx) {
+      activeGestureId = null; activeSessionIdx = null;
+    }
+    mode = "NEUTRAL"; updateModeBadge();
+    log(`Session ${session_idx + 1} complete for ${gesture_id}`, "ok");
+    updateTrainButton();
+  }
+
+  if (msg.status === "trained") {
+    mode = "INFERENCE"; updateModeBadge();
+    log(`Model trained ✓ — ${msg.neutral_frames} neutral frames`, "ok");
+  }
+  if (msg.status === "train_failed") log(`Train failed: ${msg.reason}`, "warn");
+
+  if (msg.status === "prediction") {
+    queueFill = msg.queue_fill;
+    showPrediction(msg.label);
+  }
+  if (msg.status === "triggered") { log(`🔊 ${msg.gesture}`, "trigger"); flash(); }
+
+  if (msg.status === "ok" && msg.mode) {
+    mode = msg.mode;
+    neutralFrames = msg.neutral_frames || 0;
+    updateNeutralUI(); updateModeBadge(); updateTrainButton();
+  }
+  if (msg.error) log(msg.error, "warn");
+}
+
+// ── Audio ──────────────────────────────────────────────────────────────────
+function playBlob(blob) {
+  const url = URL.createObjectURL(blob);
+  const a = new Audio(url);
+  a.play().catch(() => {});
+  a.onended = () => URL.revokeObjectURL(url);
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+function updateModeBadge() {
+  modeBadge.className = "mode-badge";
+  if (mode === "NEUTRAL") { modeBadge.classList.add("neutral"); modeBadge.textContent = "NEUTRAL"; }
+  else if (mode.startsWith("TRAIN")) { modeBadge.classList.add("training"); modeBadge.textContent = "RECORDING…"; }
+  else if (mode === "INFERENCE") { modeBadge.classList.add("inference"); modeBadge.textContent = "INFERENCE"; }
+}
+
+function updateNeutralUI() {
+  const pct = Math.min(neutralFrames / FRAMES_PER_SESSION * 100, 100);
+  neutralBar.style.width = pct + "%";
+  neutralCountEl.textContent = `${neutralFrames} / ${FRAMES_PER_SESSION}`;
+  btnTrainNeutral.textContent = mode === "TRAIN_NEUTRAL"
+    ? `■ Stop (${neutralFrames} frames)`
+    : `⬤ Record Neutral (${neutralFrames} frames)`;
+}
+
+function updateSessionUI(gid, sidx, count, complete) {
+  const card = gestureCards.find(c => c.id === gid);
+  if (!card) return;
+  const pct = Math.min(count / FRAMES_PER_SESSION * 100, 100);
+  card.sessionBars[sidx].style.width = pct + "%";
+  card.sessionBars[sidx].className = "session-bar" + (complete ? " complete" : "");
+  card.sessionCounts[sidx].textContent = `${count}/${FRAMES_PER_SESSION}`;
+  if (complete) {
+    card.sessionBtns[sidx].textContent = "✓ redo";
+    card.sessionBtns[sidx].className = "session-rec-btn done";
+  } else if (mode === "TRAIN_GESTURE" && activeGestureId === gid && activeSessionIdx === sidx) {
+    card.sessionBtns[sidx].textContent = "■ stop";
+    card.sessionBtns[sidx].className = "session-rec-btn recording";
+  }
+  // total
+  const sessions = gestureSessionData[gid] || Array(SESSIONS_REQUIRED).fill(0);
+  const total = sessions.reduce((a, b) => a + b, 0);
+  card.totalEl.textContent = `${total} total frames · ${sessions.filter(s => s >= FRAMES_PER_SESSION).length}/${SESSIONS_REQUIRED} sessions`;
+}
+
+function updateTrainButton() {
+  const hasNeutral = neutralFrames >= 20;
+  const hasGesture = gestureCards.some(c => {
+    const sessions = gestureSessionData[c.id] || [];
+    return sessions.filter(s => s >= FRAMES_PER_SESSION).length >= MIN_SESSIONS;
+  });
+  btnTrain.disabled = !(hasNeutral && hasGesture);
+}
+
+function showPrediction(label) {
+  predDisplay.textContent = label === "neutral" ? "— neutral" : `▶ ${label}`;
+  predDisplay.className = label === "neutral" ? "" : "active";
+  const segs = queueBar.querySelectorAll(".q-seg");
+  segs.forEach((s, i) => {
+    s.className = "q-seg";
+    if (i < queueFill) { s.classList.add("lit"); if (label === "neutral") s.classList.add("neutral"); }
+  });
+}
+
+function flash() {
+  triggerFlash.classList.add("fire");
+  setTimeout(() => triggerFlash.classList.remove("fire"), 300);
+}
+
+function buildQueueBar() {
+  queueBar.innerHTML = "";
+  for (let i = 0; i < QUEUE_LEN; i++) {
+    const s = document.createElement("div"); s.className = "q-seg"; queueBar.appendChild(s);
+  }
+}
+buildQueueBar();
+
+// ── Gesture card ───────────────────────────────────────────────────────────
+function addGestureCard() {
+  const id = "gesture_" + gestureIdCounter++;
+  gestureSessionData[id] = Array(SESSIONS_REQUIRED).fill(0);
+
+  const card = document.createElement("div");
+  card.className = "gesture-card";
+
+  // Build session slot HTML
+  let slotsHtml = "";
+  for (let i = 0; i < SESSIONS_REQUIRED; i++) {
+    slotsHtml += `
+      <div class="session-slot">
+        <div class="session-num">${i + 1}</div>
+        <div class="session-bar-wrap"><div class="session-bar" id="sbar_${id}_${i}"></div></div>
+        <button class="session-rec-btn" id="sbtn_${id}_${i}">⬤ rec</button>
+        <div class="session-count" id="scnt_${id}_${i}">0/${FRAMES_PER_SESSION}</div>
+      </div>`;
+  }
+
+  card.innerHTML = `
+    <div class="gesture-card-header">
+      <div class="gesture-label">
+        <span class="gesture-id-chip">${id}</span>
+        Gesture ${gestureIdCounter - 1}
+      </div>
+    </div>
+    <input type="text" id="phrase_${id}" placeholder='Phrase to speak (e.g. "Hello")' />
+    <div class="sessions-label">SESSIONS — RECORD ${SESSIONS_REQUIRED} FOR BEST ACCURACY</div>
+    <div class="session-slots">${slotsHtml}</div>
+    <div class="gesture-footer">
+      <div class="gesture-total" id="gtotal_${id}">0 total frames · 0/${SESSIONS_REQUIRED} sessions</div>
+      <button class="del-btn" id="del_${id}">✕ remove</button>
+    </div>
+  `;
+  gestureList.appendChild(card);
+
+  const phraseInput  = card.querySelector(`#phrase_${id}`);
+  const totalEl      = card.querySelector(`#gtotal_${id}`);
+  const sessionBars  = Array.from({length: SESSIONS_REQUIRED}, (_, i) => card.querySelector(`#sbar_${id}_${i}`));
+  const sessionBtns  = Array.from({length: SESSIONS_REQUIRED}, (_, i) => card.querySelector(`#sbtn_${id}_${i}`));
+  const sessionCounts= Array.from({length: SESSIONS_REQUIRED}, (_, i) => card.querySelector(`#scnt_${id}_${i}`));
+
+  gestureCards.push({ id, phraseInput, sessionBars, sessionBtns, sessionCounts, totalEl, card });
+
+  // Session record buttons
+  sessionBtns.forEach((btn, sidx) => {
+    btn.addEventListener("click", () => {
+      const isRecording = mode === "TRAIN_GESTURE" && activeGestureId === id && activeSessionIdx === sidx;
+
+      if (isRecording) {
+        // Stop
+        activeGestureId = null; activeSessionIdx = null;
+        sendCmd({ command: "set_mode", mode: "NEUTRAL" });
+        btn.textContent = "⬤ rec";
+        btn.className = "session-rec-btn";
+        card.classList.remove("active-rec");
+      } else {
+        // Stop any currently recording session
+        if (mode === "TRAIN_GESTURE") {
+          const prev = gestureCards.find(c => c.id === activeGestureId);
+          if (prev && activeSessionIdx !== null) {
+            prev.sessionBtns[activeSessionIdx].textContent = "⬤ rec";
+            prev.sessionBtns[activeSessionIdx].className = "session-rec-btn";
+            prev.card.classList.remove("active-rec");
+          }
+        }
+
+        // Set phrase
+        const phrase = phraseInput.value.trim() || `Gesture ${id} triggered`;
+        sendCmd({ command: "set_phrase", gesture_id: id, phrase });
+
+        // Start
+        activeGestureId = id; activeSessionIdx = sidx;
+        card.classList.add("active-rec");
+        btn.textContent = "■ stop";
+        btn.className = "session-rec-btn recording";
+
+        // Reset this session's count
+        gestureSessionData[id][sidx] = 0;
+        sessionBars[sidx].style.width = "0%";
+        sessionBars[sidx].className = "session-bar";
+        sessionCounts[sidx].textContent = `0/${FRAMES_PER_SESSION}`;
+
+        sendCmd({ command: "set_mode", mode: "TRAIN_GESTURE", gesture_id: id, session_idx: sidx });
+      }
+    });
+  });
+
+  // Delete
+  card.querySelector(`#del_${id}`).addEventListener("click", () => {
+    if (activeGestureId === id) {
+      activeGestureId = null; activeSessionIdx = null;
+      sendCmd({ command: "set_mode", mode: "NEUTRAL" });
+    }
+    sendCmd({ command: "clear_gesture", gesture_id: id });
+    gestureCards = gestureCards.filter(c => c.id !== id);
+    delete gestureSessionData[id];
+    card.remove();
+    updateTrainButton();
+  });
+}
+
+// ── Button handlers ────────────────────────────────────────────────────────
+btnTrainNeutral.addEventListener("click", () => {
+  if (mode === "TRAIN_NEUTRAL") {
+    sendCmd({ command: "set_mode", mode: "NEUTRAL" });
+  } else {
+    sendCmd({ command: "set_mode", mode: "TRAIN_NEUTRAL" });
+  }
+});
+
+btnAddGesture.addEventListener("click", addGestureCard);
+
+btnTrain.addEventListener("click", () => {
+  sendCmd({ command: "train" });
+  log("Training model…");
+});
+
+btnReset.addEventListener("click", () => {
+  if (!confirm("Reset everything?")) return;
+  sendCmd({ command: "clear_all" });
+  neutralFrames = 0; gestureSessionData = {};
+  gestureCards.forEach(c => c.card.remove());
+  gestureCards = []; gestureIdCounter = 1;
+  mode = "NEUTRAL"; activeGestureId = null; activeSessionIdx = null;
+  updateNeutralUI(); updateModeBadge(); updateTrainButton();
+  predDisplay.textContent = "—"; predDisplay.className = "";
+  log("Reset complete", "warn");
+});
+
+// ── MediaPipe Setup ────────────────────────────────────────────────────────
+async function initMediaPipe() {
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+  );
+
+  [faceLandmarker, handLandmarker] = await Promise.all([
+    FaceLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO", numFaces: 1,
+    }),
+    HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+        delegate: "GPU",
+      },
+      runningMode: "VIDEO", numHands: 2,
+    }),
+  ]);
+  log("MediaPipe Face + Hand ready", "ok");
+}
+
+// ── Webcam ─────────────────────────────────────────────────────────────────
+async function startWebcam() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+    });
+    video.srcObject = stream;
+    await new Promise(r => (video.onloadedmetadata = r));
+    await video.play();
+    log("Webcam active", "ok");
+  } catch (e) { log("Webcam error: " + e.message, "warn"); }
+}
+
+// ── Landmark filters ───────────────────────────────────────────────────────
+function filterFace(raw) {
+  const out = {};
+  for (const [key, idx] of Object.entries(FACE_IDX)) {
+    if (!raw[idx]) return null;
+    out[key] = [raw[idx].x, raw[idx].y];
+  }
+  return out;
+}
+
+function filterHand(raw, handedness) {
+  const out = { handedness };
+  for (const [key, idx] of Object.entries(HAND_IDX)) {
+    if (!raw[idx]) return null;
+    out[key] = [raw[idx].x, raw[idx].y];
+  }
+  return out;
+}
+
+// ── Render loop ────────────────────────────────────────────────────────────
+let lastVideoTime = -1;
+
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+  if (!faceLandmarker || !handLandmarker || video.readyState < 2) return;
+
+  if (canvas.width  !== video.videoWidth)  canvas.width  = video.videoWidth;
+  if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
+
+  // Draw mirrored video
+  ctx.save();
+  ctx.scale(-1, 1);
+  ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  if (video.currentTime === lastVideoTime) return;
+  lastVideoTime = video.currentTime;
+  const ts = performance.now();
+
+  // Run both landmarkers
+  const faceResult = faceLandmarker.detectForVideo(video, ts);
+  const handResult = handLandmarker.detectForVideo(video, ts);
+
+  // FPS
+  frameCount++;
+  const now = performance.now();
+  if (now - lastT > 1000) {
+    fpsVal.textContent = Math.round(frameCount * 1000 / (now - lastT));
+    frameCount = 0; lastT = now;
+  }
+
+  const drawUtils = new DrawingUtils(ctx);
+
+  // Mirror transform for landmarks
+  ctx.save();
+  ctx.scale(-1, 1);
+  ctx.translate(-canvas.width, 0);
+
+  // ── Face ──
+  let filteredFace = null;
+  if (faceResult.faceLandmarks?.length) {
+    const raw = faceResult.faceLandmarks[0];
+    faceVal.textContent = raw.length;
+    filteredFace = filterFace(raw);
+    drawUtils.drawConnectors(raw, FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+      { color: "rgba(0,245,160,0.06)", lineWidth: 0.5 });
+    const keyPts = Object.values(FACE_IDX).map(i => raw[i]);
+    drawUtils.drawLandmarks(keyPts, { color: "#00f5a0", radius: 3 });
+  } else { faceVal.textContent = "—"; }
+
+  // ── Hands ──
+  const filteredHands = [];
+  const handCount = handResult.landmarks?.length || 0;
+  handsVal.textContent = handCount;
+
+  for (let h = 0; h < handCount; h++) {
+    const raw = handResult.landmarks[h];
+    const handedness = handResult.handedness[h]?.[0]?.displayName || "Right";
+    const color = handedness === "Left" ? "#f5a000" : "#00b4f5";
+    const connColor = handedness === "Left" ? "rgba(245,160,0,0.25)" : "rgba(0,180,245,0.25)";
+
+    drawUtils.drawConnectors(raw, HandLandmarker.HAND_CONNECTIONS,
+      { color: connColor, lineWidth: 1.5 });
+    drawUtils.drawLandmarks(raw, { color, radius: 4, lineWidth: 1 });
+
+    const filtered = filterHand(raw, handedness);
+    if (filtered) filteredHands.push(filtered);
+  }
+
+  ctx.restore();
+
+  // Send frame to backend
+  if (filteredFace || filteredHands.length > 0)
+    sendFrame(filteredFace, filteredHands);
+}
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+(async () => {
+  connectWS();
+  await initMediaPipe();
+  await startWebcam();
+  renderLoop();
+})();
+</script>
+</body>
+</html>

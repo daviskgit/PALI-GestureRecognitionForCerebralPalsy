@@ -1,1038 +1,1850 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>GestureVoice</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
-
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet"/>
 <style>
+/* ════════════════════════════════════════════════
+   DESIGN TOKENS
+════════════════════════════════════════════════ */
 :root {
-  --bg: #f5f2ee;
-  --surface: #ffffff;
-  --surface2: #ede9e3;
-  --border: #d8d3cb;
-  --text: #1a1714;
-  --muted: #8c8680;
-  --accent: #2d6a4f;
-  --accent-light: #d8f3dc;
-  --accent2: #e07a5f;
-  --accent2-light: #fde8e2;
-  --warn: #c0392b;
-  --blue: #3d6fa8;
-  --blue-light: #dce8f5;
-  --font: 'DM Sans', sans-serif;
-  --mono: 'DM Mono', monospace;
-  --radius: 14px;
-  --radius-sm: 8px;
-  --shadow: 0 2px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  --cream:        #E8DFD0;
+  --sand:         #DDD3C0;
+  --warm-white:   #F5EFE6;
+  --orange:       #FF9A00;
+  --orange-dim:   rgba(255,154,0,0.14);
+  --orange-glow:  rgba(255,154,0,0.40);
+  --orange-soft:  #FFD580;
+  --charcoal:     #1C1C1E;
+  --charcoal-mid: rgba(28,28,30,0.55);
+  --charcoal-low: rgba(28,28,30,0.12);
+  --glass-bg:     rgba(255,248,236,0.55);
+  --glass-border: rgba(255,255,255,0.72);
+  --glass-top:    rgba(255,255,255,0.92);
+  --shadow-lift:  0 4px 24px rgba(0,0,0,0.10);
+  --shadow-deep:  0 10px 44px rgba(0,0,0,0.18);
+  --r-pill:       999px;
+  --r-xl:         40px;
+  --r-lg:         24px;
+  --r-md:         14px;
 }
 
+/* ════════════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  min-height: 100vh;
-  font-size: 16px;
-  line-height: 1.5;
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: 'Montserrat', sans-serif;
+  letter-spacing: 0.02em;
+  background: var(--cream);
+  color: var(--charcoal);
 }
 
-/* ── WIZARD OVERLAY ─────────────────────────────────────────────────── */
-#wizard {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  z-index: 100;
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+/* ════════════════════════════════════════════════
+   SCREEN SYSTEM
+════════════════════════════════════════════════ */
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; }
+.screen.active { display: flex; }
+
+/* ════════════════════════════════════════════════
+   GLASS CARD
+════════════════════════════════════════════════ */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-top);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lift);
+}
+
+/* ════════════════════════════════════════════════
+   BUTTON SYSTEM
+════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: var(--r-pill);
+  padding: 13px 32px;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600; font-size: 0.85rem;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  transition: all 0.2s ease;
+  box-shadow: 0 3px 14px rgba(0,0,0,0.10);
+}
+.btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 7px 26px rgba(0,0,0,0.16); }
+.btn:active:not(:disabled) { transform: translateY(0); }
+.btn:disabled { opacity: 0.32; cursor: not-allowed; }
+
+.btn-primary { background: var(--orange); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #e08800; box-shadow: 0 7px 26px rgba(255,154,0,0.38); }
+
+.btn-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(28,28,30,0.10);
+  color: var(--charcoal);
+}
+.btn-glass:hover:not(:disabled) { background: rgba(255,255,255,0.82); border-color: var(--orange); }
+
+.btn-dark {
+  background: var(--charcoal); color: rgba(255,255,255,0.88);
+}
+.btn-dark:hover:not(:disabled) { background: #2a2a2e; }
+
+.btn-sm { padding: 8px 18px; font-size: 0.73rem; }
+.btn-xs { padding: 5px 13px; font-size: 0.68rem; }
+.btn-block { width: 100%; }
+
+/* text-only back link */
+.link-back {
+  font-size: 0.8rem; font-weight: 600;
+  letter-spacing: 0.04em; color: var(--charcoal-mid);
+  transition: color 0.2s; padding: 4px 0;
+}
+.link-back:hover { color: var(--orange); }
+
+/* ════════════════════════════════════════════════
+   SCREEN 1: LANDING
+════════════════════════════════════════════════ */
+#screen-landing {
+  align-items: center; justify-content: center; overflow: hidden;
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 38%, rgba(255,200,100,0.52) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 80% at 82% 72%, rgba(255,154,0,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 14% 22%, rgba(221,200,160,0.75) 0%, transparent 60%),
+    var(--cream);
+}
+
+/* Grain overlay for warmth */
+#screen-landing::after {
+  content: '';
+  position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/></filter><rect width='256' height='256' filter='url(%23n)' opacity='0.18'/></svg>");
+  opacity: 0.55; mix-blend-mode: multiply;
+  border-radius: inherit;
+}
+
+/* Aura rings */
+.aura-rings {
+  position: absolute; inset: 0; pointer-events: none; overflow: hidden;
+}
+.aura-ring {
+  position: absolute; border-radius: 50%;
+  left: 50%; top: 40%;
+  transform: translate(-50%, -50%);
+  border: 1.5px solid rgba(255,154,0,0.18);
+  animation: ringPulse 5s ease-in-out infinite;
+}
+.aura-ring:nth-child(1) { width: 220px; height: 220px; animation-delay:    0s; border-color: rgba(255,154,0,0.28); }
+.aura-ring:nth-child(2) { width: 380px; height: 380px; animation-delay:  -1.2s; border-color: rgba(255,154,0,0.18); }
+.aura-ring:nth-child(3) { width: 560px; height: 560px; animation-delay:  -2.5s; border-color: rgba(255,154,0,0.11); }
+.aura-ring:nth-child(4) { width: 760px; height: 760px; animation-delay:  -3.8s; border-color: rgba(255,154,0,0.06); }
+@keyframes ringPulse {
+  0%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(1); }
+  50%       { opacity: 0.3; transform: translate(-50%, -50%) scale(1.06); }
+}
+
+.landing-wrap {
+  text-align: center; position: relative; z-index: 2;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 48px;
+  gap: 4px;
+}
+
+.greeting {
+  font-size: clamp(2.6rem, 7vw, 6.8rem);
+  font-weight: 300; color: var(--charcoal);
+  line-height: 1.05; letter-spacing: -0.025em;
+}
+.greeting-name { font-weight: 700; color: var(--orange); }
+
+.greeting-sub {
+  margin-top: 12px;
+  font-size: 0.82rem; font-weight: 400;
+  color: rgba(28,28,30,0.40);
+  letter-spacing: 0.16em; text-transform: uppercase;
+}
+
+/* Large action cards */
+.landing-cards {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  justify-content: center; margin-top: 3rem;
+}
+.action-card {
+  width: 160px; min-height: 178px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 13px; padding: 30px 20px;
+  background: rgba(255,248,236,0.52);
+  backdrop-filter: blur(22px); -webkit-backdrop-filter: blur(22px);
+  border: 1px solid rgba(255,255,255,0.72);
+  border-top-color: rgba(255,255,255,0.90);
+  border-radius: 28px;
+  box-shadow: 0 4px 26px rgba(0,0,0,0.09), 0 1px 0 rgba(255,255,255,0.8) inset;
+  transition: all 0.2s ease;
+  cursor: pointer; font-family: 'Montserrat', sans-serif;
+  color: var(--charcoal);
+}
+.action-card:hover:not(:disabled) {
+  transform: translateY(-5px);
+  background: rgba(255, 244, 228, 0.85); /* Warmer, smooth cream hover */
+  border-color: rgba(255, 154, 0, 0.35); /* Subtle orange border */
+  box-shadow: 0 14px 38px rgba(0,0,0,0.12), 0 1px 0 rgba(255, 154, 0, 0.2) inset;
+}
+.action-card:active:not(:disabled) { transform: translateY(-2px); }
+.action-card:disabled { opacity: 0.38; cursor: not-allowed; }
+
+.action-card-icon {
+  width: 48px; height: 48px; border-radius: 50%;
+  background: rgba(255,154,0,0.12);
+  border: 1.5px solid rgba(255,154,0,0.22);
   display: flex; align-items: center; justify-content: center;
-  padding: 24px;
-  transition: opacity 0.4s, pointer-events 0.4s;
-}
-#wizard.hidden { opacity: 0; pointer-events: none; }
-
-.wizard-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-  box-shadow: var(--shadow-lg);
-  width: 100%;
-  max-width: 620px;
-  overflow: hidden;
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: var(--orange);
 }
 
-.wizard-header {
-  background: var(--accent);
-  padding: 32px 40px 28px;
-  color: white;
+.action-card-label {
+  font-size: 0.86rem; font-weight: 700; letter-spacing: 0.09em;
 }
-.wizard-logo {
-  font-size: 13px; font-weight: 500; letter-spacing: 0.12em;
-  text-transform: uppercase; opacity: 0.7; margin-bottom: 12px;
-}
-.wizard-title {
-  font-size: 28px; font-weight: 700; line-height: 1.2; margin-bottom: 8px;
-}
-.wizard-sub {
-  font-size: 15px; opacity: 0.8; font-weight: 400;
-}
-.wizard-steps {
-  display: flex; gap: 6px; margin-top: 20px;
-}
-.wizard-step-dot {
-  height: 4px; border-radius: 2px;
-  background: rgba(255,255,255,0.3);
-  transition: all 0.3s; flex: 1;
-}
-.wizard-step-dot.active { background: white; }
-.wizard-step-dot.done { background: rgba(255,255,255,0.6); }
-
-.wizard-body {
-  padding: 36px 40px 32px;
+.action-card-sub {
+  font-size: 0.64rem; color: rgba(28,28,30,0.42);
+  letter-spacing: 0.04em; line-height: 1.4; text-align: center;
 }
 
-.wizard-section-title {
-  font-size: 12px; font-weight: 600; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 16px;
+.name-edit-link {
+  font-size: 0.72rem; color: rgba(28,28,30,0.28);
+  letter-spacing: 0.05em; margin-top: 22px;
+  transition: color 0.2s;
 }
+.name-edit-link:hover { color: var(--orange); }
 
-/* Body part cards */
-.bodypart-grid {
-  display: grid; grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px; margin-bottom: 8px;
+/* ════════════════════════════════════════════════
+   SCREEN 2: TRAIN
+════════════════════════════════════════════════ */
+.topbar {
+  height: 58px; flex-shrink: 0;
+  background: rgba(240,230,212,0.88);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(28,28,30,0.07);
+  display: flex; align-items: center;
+  padding: 0 22px; gap: 14px;
+  position: relative; z-index: 20;
 }
-.bodypart-card {
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  padding: 20px 16px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: var(--surface);
-  user-select: none;
+.topbar-title {
+  font-size: 0.74rem; font-weight: 700;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  color: rgba(28,28,30,0.42);
 }
-.bodypart-card:hover { border-color: var(--accent); background: var(--accent-light); }
-.bodypart-card.selected {
-  border-color: var(--accent);
-  background: var(--accent-light);
-  box-shadow: 0 0 0 3px rgba(45,106,79,0.15);
-}
-.bodypart-icon { font-size: 32px; margin-bottom: 8px; }
-.bodypart-label { font-size: 13px; font-weight: 600; color: var(--text); }
-.bodypart-check {
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 2px solid var(--border);
-  margin: 8px auto 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: all 0.2s; font-size: 11px; color: transparent;
-}
-.bodypart-card.selected .bodypart-check {
-  background: var(--accent); border-color: var(--accent); color: white;
-}
-.bodypart-note {
-  font-size: 12px; color: var(--muted); text-align: center; margin-top: 8px;
-}
+.topbar-spacer { flex: 1; }
 
-/* Gesture selection */
-.gesture-options { display: flex; flex-direction: column; gap: 10px; }
-.gesture-option {
-  border: 2px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-  cursor: pointer;
-  display: flex; align-items: center; gap: 14px;
-  transition: all 0.2s; background: var(--surface);
-}
-.gesture-option:hover { border-color: var(--accent); background: var(--accent-light); }
-.gesture-option.selected { border-color: var(--accent); background: var(--accent-light); }
-.gesture-option-icon { font-size: 22px; flex-shrink: 0; }
-.gesture-option-text { flex: 1; }
-.gesture-option-name { font-size: 14px; font-weight: 600; }
-.gesture-option-desc { font-size: 12px; color: var(--muted); margin-top: 1px; }
-.gesture-option-check {
-  width: 20px; height: 20px; border-radius: 50%;
-  border: 2px solid var(--border); flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 11px; color: transparent; transition: all 0.2s;
-}
-.gesture-option.selected .gesture-option-check {
-  background: var(--accent); border-color: var(--accent); color: white;
-}
-
-/* Recording step */
-.rec-gesture-name {
-  font-size: 22px; font-weight: 700; margin-bottom: 4px;
-}
-.rec-gesture-phrase {
-  display: inline-block;
-  background: var(--accent-light);
-  color: var(--accent);
-  font-size: 14px; font-weight: 600;
-  padding: 4px 12px; border-radius: 100px;
-  margin-bottom: 16px;
-}
-.rec-instructions {
-  background: var(--surface2);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
-  font-size: 14px; color: var(--muted);
-  margin-bottom: 20px;
-  border-left: 3px solid var(--accent);
-}
-.rec-instructions strong { color: var(--text); }
-
-.rec-progress-area { margin-bottom: 24px; }
-.rec-session-label {
-  font-size: 12px; font-weight: 600; color: var(--muted);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  margin-bottom: 8px; display: flex; justify-content: space-between;
-}
-.rec-dots { display: flex; gap: 6px; margin-bottom: 12px; }
-.rec-dot {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--border); transition: all 0.3s;
-}
-.rec-dot.done { background: var(--accent); }
-.rec-dot.active { background: var(--accent2); transform: scale(1.3); }
-
-.rec-bar-wrap {
-  background: var(--surface2); border-radius: 100px;
-  height: 10px; overflow: hidden;
-}
-.rec-bar {
-  height: 100%; background: var(--accent2); border-radius: 100px;
-  width: 0%; transition: width 0.15s;
-}
-.rec-bar.done { background: var(--accent); }
-.rec-count {
-  font-family: var(--mono); font-size: 12px; color: var(--muted);
-  text-align: right; margin-top: 4px;
-}
-
-/* Neutral step */
-.neutral-diagram {
-  background: var(--surface2);
-  border-radius: var(--radius);
-  padding: 24px;
-  text-align: center;
-  margin-bottom: 20px;
-}
-.neutral-diagram-icon { font-size: 48px; margin-bottom: 8px; }
-.neutral-diagram-text { font-size: 14px; color: var(--muted); }
-
-/* Summary */
-.summary-list { display: flex; flex-direction: column; gap: 10px; }
-.summary-item {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--surface2); border-radius: var(--radius-sm);
-  padding: 12px 14px;
-}
-.summary-item-icon { font-size: 20px; flex-shrink: 0; }
-.summary-item-text { font: 14px/1.3 var(--font); }
-.summary-item-name { font-weight: 600; }
-.summary-item-phrase { color: var(--muted); font-size: 13px; }
-.summary-check { color: var(--accent); margin-left: auto; font-size: 16px; }
-
-/* Wizard nav */
-.wizard-nav {
-  display: flex; gap: 10px; margin-top: 28px; align-items: center;
-}
-.wizard-nav .spacer { flex: 1; }
-.btn-wizard-back {
-  padding: 10px 20px; border-radius: var(--radius-sm);
-  border: 1px solid var(--border); background: transparent;
-  color: var(--muted); font-family: var(--font); font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s;
-}
-.btn-wizard-back:hover { border-color: var(--text); color: var(--text); }
-.btn-wizard-next {
-  padding: 12px 28px; border-radius: var(--radius-sm);
-  border: none; background: var(--accent);
-  color: white; font-family: var(--font); font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 8px;
-}
-.btn-wizard-next:hover { background: #245a41; }
-.btn-wizard-next:disabled { opacity: 0.4; pointer-events: none; }
-.btn-wizard-rec {
-  padding: 14px 28px; border-radius: var(--radius-sm);
-  border: none; background: var(--accent2);
-  color: white; font-family: var(--font); font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 8px;
-}
-.btn-wizard-rec:hover { background: #c4694f; }
-.btn-wizard-rec.recording { background: var(--warn); }
-.btn-wizard-rec:disabled { opacity: 0.4; pointer-events: none; }
-
-/* ── MAIN APP ────────────────────────────────────────────────────────── */
-#app {
-  display: none;
-  min-height: 100vh;
-  flex-direction: column;
-}
-#app.visible { display: flex; }
-
-.app-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  padding: 14px 28px;
-  display: flex; align-items: center; gap: 20px;
-}
-.app-logo { font-size: 18px; font-weight: 700; }
-.app-logo span { color: var(--accent); }
-.app-header-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-
-.ws-badge {
-  display: flex; align-items: center; gap: 7px;
-  font-family: var(--mono); font-size: 12px; color: var(--muted);
+.ws-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: var(--r-pill);
+  background: rgba(28,28,30,0.05);
 }
 .ws-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--warn); transition: background 0.3s;
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(28,28,30,0.2); transition: background 0.3s;
 }
-.ws-dot.connected { background: var(--accent); box-shadow: 0 0 8px rgba(45,106,79,0.5); }
-
-.btn-sm {
-  padding: 7px 14px; border-radius: var(--radius-sm);
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--text); font-family: var(--font); font-size: 13px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s;
-}
-.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
-
-.app-main {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  height: calc(100vh - 57px);
-  overflow: hidden;
+.ws-dot.on { background: #22c55e; }
+.ws-text {
+  font-size: 0.62rem; font-weight: 700;
+  letter-spacing: 0.08em; color: rgba(28,28,30,0.3);
 }
 
-/* Canvas area */
-.canvas-pane {
-  position: relative;
-  background: #1a1714;
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
+/* Train layout */
+.train-layout { display: flex; flex: 1; overflow: hidden; }
+
+/* Camera pane */
+.camera-pane {
+  flex: 0 0 70%; position: relative;
+  background: #0e0e10; overflow: hidden;
 }
-video { display: none; }
-#overlay { width: 100%; height: 100%; object-fit: cover; }
+#camera-root { position: absolute; inset: 0; }
+#video, #canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+}
+#canvas { z-index: 1; }
 
 .mode-badge {
-  position: absolute; top: 16px; left: 16px;
-  padding: 6px 14px; border-radius: 100px;
-  font-family: var(--mono); font-size: 12px; font-weight: 500;
-  letter-spacing: 0.05em;
-  background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.5); transition: all 0.2s;
+  position: absolute; top: 14px; left: 14px; z-index: 6;
+  padding: 5px 13px; border-radius: var(--r-pill);
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.12em;
+  background: rgba(20,20,22,0.68); color: rgba(255,255,255,0.52);
+  backdrop-filter: blur(8px);
+  transition: all 0.3s;
 }
-.mode-badge.recording { color: #f5a25a; border-color: rgba(245,162,90,0.4); }
-.mode-badge.inference { color: #6fd4a0; border-color: rgba(111,212,160,0.4); }
+.mode-badge.recording { background: rgba(220,38,38,0.88); color: #fff; }
+.mode-badge.inference  { background: rgba(34,197,94,0.85);  color: #fff; }
 
-.trigger-flash {
-  position: absolute; inset: 0;
-  background: var(--accent);
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.05s;
-}
-.trigger-flash.fire { opacity: 0.12; }
-
-.triggered-label {
-  position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
-  background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 100px;
-  padding: 10px 24px;
-  font-size: 16px; font-weight: 600; color: white;
-  opacity: 0; transition: opacity 0.2s;
-  white-space: nowrap;
-}
-.triggered-label.show { opacity: 1; }
-
-/* Confidence bar */
-.conf-wrap {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  height: 4px; background: rgba(0,0,0,0.3);
-}
-.conf-bar {
-  height: 100%; background: var(--accent);
-  width: 0%; transition: width 0.1s;
-}
-
-/* Sidebar */
-.sidebar {
-  background: var(--surface);
-  border-left: 1px solid var(--border);
+/* Countdown */
+.countdown-ov {
+  position: absolute; inset: 0; z-index: 8;
   display: flex; flex-direction: column;
-  overflow: hidden;
+  align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.54);
+  backdrop-filter: blur(4px);
 }
-
-.sidebar-tabs {
-  display: flex; border-bottom: 1px solid var(--border);
-}
-.sidebar-tab {
-  flex: 1; padding: 12px 8px;
-  text-align: center; font-size: 12px; font-weight: 600;
-  color: var(--muted); cursor: pointer;
-  border-bottom: 2px solid transparent;
-  transition: all 0.15s; letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-.sidebar-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-.sidebar-panel {
-  display: none; flex: 1; overflow-y: auto; padding: 20px;
-}
-.sidebar-panel.active { display: block; }
-.sidebar-panel::-webkit-scrollbar { width: 4px; }
-.sidebar-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-/* Gesture tiles in sidebar */
-.gesture-tiles { display: flex; flex-direction: column; gap: 10px; }
-.gesture-tile {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 14px;
-  display: flex; align-items: center; gap: 12px;
-  transition: all 0.2s;
-}
-.gesture-tile.active-pred {
-  border-color: var(--accent);
-  background: var(--accent-light);
-}
-.gesture-tile-icon { font-size: 22px; flex-shrink: 0; }
-.gesture-tile-body { flex: 1; min-width: 0; }
-.gesture-tile-name { font-size: 14px; font-weight: 600; }
-.gesture-tile-phrase {
-  font-size: 12px; color: var(--muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.gesture-tile-status {
-  font-family: var(--mono); font-size: 11px;
-  color: var(--muted); flex-shrink: 0;
-}
-.gesture-tile.active-pred .gesture-tile-status { color: var(--accent); font-weight: 600; }
-
-.section-label {
-  font-size: 11px; font-weight: 600; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--muted);
-  margin-bottom: 12px; margin-top: 4px;
-}
-
-/* Add gesture form */
-.add-gesture-form {
-  background: var(--surface2); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 14px; margin-top: 10px;
-}
-.add-gesture-form input[type="text"] {
-  width: 100%; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 6px; color: var(--text);
-  font-family: var(--font); font-size: 14px;
-  padding: 9px 12px; outline: none; transition: border-color 0.15s;
+.countdown-ov.hidden { display: none; }
+.cd-label {
+  font-size: 0.9rem; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(255,255,255,0.62);
   margin-bottom: 10px;
 }
-.add-gesture-form input:focus { border-color: var(--accent); }
-.add-gesture-form input::placeholder { color: var(--muted); }
+.cd-num {
+  font-size: clamp(5rem, 13vw, 12rem); font-weight: 700;
+  color: var(--orange); line-height: 1;
+  text-shadow: 0 0 80px rgba(255,154,0,0.6);
+}
+.cd-num.pulse { animation: cdPulse 0.88s ease-out forwards; }
+@keyframes cdPulse {
+  0%   { transform: scale(1.32); opacity: 0.48; }
+  36%  { transform: scale(1);    opacity: 1; }
+  100% { transform: scale(0.92); opacity: 0.84; }
+}
 
-/* Recording UI in sidebar */
-.rec-card {
-  background: var(--surface2); border: 2px solid var(--border);
-  border-radius: var(--radius-sm); padding: 16px;
-  margin-top: 10px; transition: border-color 0.2s;
+.gesture-lbl {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 6; padding: 9px 24px; border-radius: var(--r-pill);
+  font-size: 1.3rem; font-weight: 700; letter-spacing: 0.2em;
+  color: #fff; background: rgba(255,154,0,0.90);
+  backdrop-filter: blur(8px);
 }
-.rec-card.active { border-color: var(--accent2); }
-.rec-card-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
-.rec-progress { display: flex; flex-direction: column; gap: 6px; }
-.rec-session-row { display: flex; align-items: center; gap: 8px; }
-.rec-session-num { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 14px; }
-.rec-session-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-.rec-session-fill { height: 100%; width: 0%; border-radius: 3px; background: var(--accent2); transition: width 0.15s; }
-.rec-session-fill.done { background: var(--accent); }
-.rec-session-btn {
-  padding: 4px 10px; border-radius: 4px;
-  border: 1px solid var(--border); background: var(--surface);
-  color: var(--muted); font-family: var(--mono); font-size: 11px;
-  cursor: pointer; transition: all 0.15s; white-space: nowrap;
-}
-.rec-session-btn:hover { border-color: var(--accent); color: var(--accent); }
-.rec-session-btn.recording { border-color: var(--accent2); color: var(--accent2); background: var(--accent2-light); }
-.rec-session-btn.done { border-color: var(--accent); color: var(--accent); }
+.gesture-lbl.hidden { display: none; }
 
-/* Action buttons */
-.btn-primary {
-  width: 100%; padding: 12px; border-radius: var(--radius-sm);
-  border: none; background: var(--accent); color: white;
-  font-family: var(--font); font-size: 15px; font-weight: 600;
-  cursor: pointer; transition: all 0.15s; margin-top: 12px;
-  display: flex; align-items: center; justify-content: center; gap: 8px;
+.trigger-flash {
+  position: absolute; inset: 0; z-index: 4;
+  background: rgba(255,154,0,0.26); opacity: 0; pointer-events: none;
 }
-.btn-primary:hover { background: #245a41; }
-.btn-primary:disabled { opacity: 0.4; pointer-events: none; }
-.btn-secondary {
-  width: 100%; padding: 10px; border-radius: var(--radius-sm);
-  border: 1px solid var(--border); background: transparent;
-  color: var(--text); font-family: var(--font); font-size: 14px; font-weight: 500;
-  cursor: pointer; transition: all 0.15s; margin-top: 8px;
-}
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-.btn-danger {
-  width: 100%; padding: 10px; border-radius: var(--radius-sm);
-  border: 1px solid transparent; background: transparent;
-  color: var(--muted); font-family: var(--font); font-size: 13px;
-  cursor: pointer; transition: all 0.15s; margin-top: 4px;
-}
-.btn-danger:hover { color: var(--warn); border-color: var(--warn); }
+.trigger-flash.fire { animation: flashFx 0.45s ease-out forwards; }
+@keyframes flashFx { 0% { opacity: 0.75; } 100% { opacity: 0; } }
 
-/* Log */
-#log {
-  font-family: var(--mono); font-size: 12px; color: var(--muted);
-  display: flex; flex-direction: column; gap: 3px;
+.triggered-lbl {
+  position: absolute; bottom: 72px; left: 50%;
+  transform: translateX(-50%) translateY(14px);
+  z-index: 6; padding: 11px 28px; border-radius: var(--r-pill);
+  font-size: 1.05rem; font-weight: 700; color: #fff;
+  background: rgba(20,20,22,0.88);
+  backdrop-filter: blur(12px); opacity: 0;
+  transition: all 0.28s ease; pointer-events: none; white-space: nowrap;
 }
-.log-entry { padding: 2px 0; border-bottom: 1px solid var(--border); }
-.log-entry.ok { color: var(--accent); }
-.log-entry.warn { color: var(--warn); }
-.log-entry.trigger { color: var(--text); font-weight: 600; }
+.triggered-lbl.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Inference panel */
-.inference-card {
-  background: var(--accent-light);
-  border: 1px solid rgba(45,106,79,0.2);
-  border-radius: var(--radius-sm);
-  padding: 16px;
-  margin-bottom: 16px;
-  text-align: center;
+/* Agenda strip */
+.agenda-strip {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 6;
+  background: rgba(18,18,20,0.84);
+  backdrop-filter: blur(10px);
+  padding: 9px 18px; overflow-x: auto; scrollbar-width: none;
 }
-.inference-label {
-  font-size: 13px; color: var(--accent); font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px;
+.agenda-strip::-webkit-scrollbar { display: none; }
+.agenda-row {
+  display: flex; align-items: center; white-space: nowrap; gap: 0;
 }
-.inference-pred {
-  font-size: 20px; font-weight: 700; color: var(--text);
-  min-height: 30px;
+.a-item {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 13px; border-radius: var(--r-pill);
+  font-size: 0.64rem; font-weight: 600; letter-spacing: 0.07em;
+  text-transform: uppercase; color: rgba(255,255,255,0.28);
+  transition: all 0.3s ease; flex-shrink: 0;
 }
-.queue-dots { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
-.q-dot {
+.a-item + .a-item::before {
+  content: '>'; color: rgba(255,255,255,0.12); margin-right: 8px; font-size: 0.8rem;
+}
+.a-item.active { color: var(--orange); background: var(--orange-dim); }
+.a-item.done   { color: rgba(255,255,255,0.16); text-decoration: line-through; }
+.a-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+/* Training panel */
+.train-panel {
+  flex: 0 0 30%; overflow-y: auto;
+  padding: 22px 18px;
+  display: flex; flex-direction: column; gap: 18px;
+  border-left: 1px solid rgba(255,255,255,0.55);
+  background: rgba(240,230,210,0.62);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  border-radius: 0;
+  border-top: none; border-right: none; border-bottom: none;
+}
+.panel-label {
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(28,28,30,0.32);
+}
+.rule { height: 1px; background: rgba(28,28,30,0.07); margin: 0 -18px; }
+
+/* Steps */
+.step { display: flex; gap: 13px; transition: opacity 0.3s; }
+.step.locked { opacity: 0.26; pointer-events: none; }
+
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: var(--charcoal); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700;
+}
+.step.locked .step-num { background: rgba(28,28,30,0.16); }
+
+.step-body { flex: 1; display: flex; flex-direction: column; gap: 9px; min-width: 0; }
+.step-body h4 { font-size: 0.84rem; font-weight: 700; }
+.step-body p  { font-size: 0.75rem; color: var(--charcoal-mid); line-height: 1.55; }
+
+.prog-bar {
+  height: 4px; background: rgba(28,28,30,0.08);
+  border-radius: var(--r-pill); overflow: hidden;
+}
+.prog-bar.hidden { display: none; }
+.prog-fill {
+  height: 100%; background: var(--orange);
+  border-radius: var(--r-pill); transition: width 0.24s ease; width: 0%;
+}
+
+.status-ok {
+  font-size: 0.72rem; font-weight: 700;
+  color: #22c55e; letter-spacing: 0.04em;
+}
+.status-ok.hidden { display: none; }
+
+/* Gesture cards */
+.g-cards { display: flex; flex-direction: column; gap: 7px; }
+.g-card {
+  background: rgba(28,28,30,0.04);
+  border: 1.5px solid rgba(28,28,30,0.07);
+  border-radius: var(--r-md); padding: 9px 13px;
+  display: flex; align-items: center; gap: 9px;
+  transition: all 0.2s;
+}
+.g-card.current  { border-color: var(--orange); background: var(--orange-dim); }
+.g-card.locked-in { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.04); }
+.g-card-name {
+  font-size: 0.76rem; font-weight: 700;
+  letter-spacing: 0.1em; flex: 1;
+}
+.g-card-locked { font-size: 0.66rem; font-weight: 700; color: #22c55e; }
+
+.sess-dots { display: flex; gap: 5px; }
+.sess-dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--border); transition: background 0.15s;
+  background: rgba(28,28,30,0.1); transition: all 0.26s;
 }
-.q-dot.lit { background: var(--accent); }
-.q-dot.neutral { background: var(--muted); opacity: 0.5; }
+.sess-dot.full   { background: var(--orange); }
+.sess-dot.active { background: var(--orange-soft); box-shadow: 0 0 5px var(--orange); }
 
-/* Smooth badge */
-.smooth-info {
-  background: var(--surface2); border-radius: var(--radius-sm);
-  padding: 10px 14px; font-size: 13px; color: var(--muted);
-  margin-bottom: 12px;
+/* Test panel */
+.test-box {
+  background: rgba(28,28,30,0.05); border-radius: var(--r-md);
+  padding: 12px 15px;
+  font-size: 0.82rem; font-weight: 600; line-height: 1.5; text-align: center;
+}
+.test-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+
+/* ════════════════════════════════════════════════
+   SCREEN 3: DO TASK
+════════════════════════════════════════════════ */
+#screen-task { background: #0a0a0c; }
+.task-camera { flex: 1; position: relative; overflow: hidden; }
+
+/* Top-right live indicator */
+.live-indicator {
+  position: absolute; top: 18px; right: 18px; z-index: 8;
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 14px; border-radius: var(--r-pill);
+  background: rgba(20,20,22,0.72); backdrop-filter: blur(10px);
+}
+.live-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #22c55e;
+  animation: liveBlink 1.5s ease-in-out infinite;
+}
+@keyframes liveBlink {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(34,197,94,0.7); }
+  50%       { opacity: 0.28; box-shadow: none; }
+}
+.live-label {
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.12em; color: rgba(255,255,255,0.62);
+}
+
+/* Top-left controls */
+.task-controls {
+  position: absolute; top: 18px; left: 18px; z-index: 8;
+  display: flex; align-items: center; gap: 10px;
+}
+.task-done-btn {
+  padding: 7px 18px; border-radius: var(--r-pill);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em;
+  background: rgba(20,20,22,0.72); color: rgba(255,255,255,0.6);
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+}
+.task-done-btn:hover { background: rgba(255,154,0,0.75); color: #fff; }
+
+.landmark-toggle {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: var(--r-pill);
+  background: rgba(20,20,22,0.72); backdrop-filter: blur(10px);
+  cursor: pointer; user-select: none;
+}
+.toggle-track {
+  width: 30px; height: 16px; border-radius: var(--r-pill);
+  background: rgba(255,255,255,0.15); position: relative;
+  transition: background 0.2s;
+}
+.toggle-track.on { background: var(--orange); }
+.toggle-thumb {
+  position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #fff; transition: left 0.2s;
+}
+.toggle-track.on .toggle-thumb { left: 16px; }
+.toggle-label {
+  font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.1em; color: rgba(255,255,255,0.55);
+}
+
+/* Task trigger flash */
+.task-flash {
+  position: absolute; inset: 0; z-index: 3;
+  background: rgba(255,154,0,0.22); opacity: 0; pointer-events: none;
+}
+.task-flash.fire { animation: flashFx 0.5s ease-out forwards; }
+
+/* Confidence bar */
+.conf-rail {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5;
+  height: 3px; background: rgba(255,255,255,0.07);
+}
+.conf-fill {
+  height: 100%; background: var(--orange);
+  transition: width 0.1s linear; width: 0%;
+}
+
+/* Narration bar */
+.narration-bar {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 7;
+  background: rgba(18,18,20,0.88);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 20px 32px 24px;
+  display: flex; align-items: center; gap: 24px;
+  min-height: 88px;
+}
+
+/* Audio visualizer */
+.audio-viz {
+  display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+}
+.viz-bar {
+  width: 3px; border-radius: 2px;
+  background: var(--orange);
+  height: 4px;
+  transition: height 0.08s ease;
+  --h: 4px;
+  opacity: 0.5;
+}
+.audio-viz.playing .viz-bar { opacity: 1; }
+.audio-viz.playing .viz-bar:nth-child(1) { animation: vizA 0.5s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(2) { animation: vizA 0.4s 0.06s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(3) { animation: vizA 0.6s 0.12s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(4) { animation: vizA 0.35s 0.03s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(5) { animation: vizA 0.55s 0.09s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(6) { animation: vizA 0.45s 0.15s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(7) { animation: vizA 0.65s 0.05s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(8) { animation: vizA 0.38s 0.11s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(9) { animation: vizA 0.52s 0.08s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(10){ animation: vizA 0.42s 0.14s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(11){ animation: vizA 0.60s 0.02s ease-in-out infinite alternate; }
+.audio-viz.playing .viz-bar:nth-child(12){ animation: vizA 0.48s 0.10s ease-in-out infinite alternate; }
+@keyframes vizA {
+  0%   { height: 3px; }
+  100% { height: var(--bar-h, 28px); }
+}
+/* Assign distinct heights via nth for natural variety */
+.viz-bar:nth-child(1)  { --bar-h: 18px; }
+.viz-bar:nth-child(2)  { --bar-h: 32px; }
+.viz-bar:nth-child(3)  { --bar-h: 24px; }
+.viz-bar:nth-child(4)  { --bar-h: 40px; }
+.viz-bar:nth-child(5)  { --bar-h: 28px; }
+.viz-bar:nth-child(6)  { --bar-h: 44px; }
+.viz-bar:nth-child(7)  { --bar-h: 30px; }
+.viz-bar:nth-child(8)  { --bar-h: 42px; }
+.viz-bar:nth-child(9)  { --bar-h: 26px; }
+.viz-bar:nth-child(10) { --bar-h: 38px; }
+.viz-bar:nth-child(11) { --bar-h: 22px; }
+.viz-bar:nth-child(12) { --bar-h: 34px; }
+
+.narration-content { flex: 1; min-width: 0; }
+.narration-eyebrow {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: rgba(255,255,255,0.3);
+  margin-bottom: 5px;
+}
+.narration-text {
+  font-size: 1.45rem; font-weight: 600;
+  color: rgba(255,255,255,0.92); letter-spacing: -0.01em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.narration-text.idle { font-size: 0.95rem; color: rgba(255,255,255,0.3); font-weight: 400; }
+
+.narration-confidence {
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.13em;
+  text-transform: uppercase; color: rgba(255,255,255,0.32);
+  margin-top: 5px;
+}
+.narration-confidence.hidden { display: none; }
+
+/* Real-time freq viz overlay on audio (driven by Web Audio API) */
+.freq-canvas-wrap {
+  position: absolute; inset: 0; z-index: 2;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.3s;
+}
+.freq-canvas-wrap.active { opacity: 1; }
+#freq-canvas { width: 100%; height: 100%; }
+
+/* ════════════════════════════════════════════════
+   SCREEN 4: DATA
+════════════════════════════════════════════════ */
+#screen-data {
+  background:
+    radial-gradient(ellipse 78% 58% at 50% 36%, rgba(255,200,120,0.38) 0%, transparent 66%),
+    var(--cream);
+}
+
+.data-topbar {
+  height: 58px; flex-shrink: 0;
+  background: rgba(240,230,212,0.88);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(28,28,30,0.07);
+  display: flex; align-items: center;
+  padding: 0 28px; gap: 20px;
+  position: relative; z-index: 10;
+}
+.data-tabs {
+  display: flex; gap: 2px;
+  background: rgba(28,28,30,0.06); border-radius: var(--r-pill);
+  padding: 4px;
+}
+.data-tab {
+  padding: 6px 18px; border-radius: var(--r-pill);
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: rgba(28,28,30,0.4);
+  transition: all 0.2s; cursor: pointer; border: none;
+  font-family: inherit;
+}
+.data-tab.active {
+  background: var(--orange); color: #fff;
+  box-shadow: 0 2px 10px rgba(255,154,0,0.28);
+}
+
+.data-body { flex: 1; overflow: hidden; position: relative; }
+.data-panel { position: absolute; inset: 0; overflow-y: auto; padding: 32px; display: none; }
+.data-panel.active { display: block; }
+
+/* Tab 1: Gesture list */
+.data-section-title {
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.16em;
+  text-transform: uppercase; color: rgba(28,28,30,0.35);
+  margin-bottom: 14px;
+}
+
+.body-parts-display {
+  display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px;
+}
+.bp-chip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: var(--r-pill);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(28,28,30,0.10);
+  font-size: 0.74rem; font-weight: 700; letter-spacing: 0.06em;
+}
+.bp-chip-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--orange);
+}
+.bp-chip.inactive { opacity: 0.4; }
+.bp-chip.inactive .bp-chip-dot { background: rgba(28,28,30,0.3); }
+
+.gesture-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 16px 20px; border-radius: var(--r-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(28,28,30,0.07);
+  border-top-color: rgba(255,255,255,0.7);
+  margin-bottom: 10px; transition: box-shadow 0.2s;
+}
+.gesture-row:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+.gr-name {
+  font-size: 0.8rem; font-weight: 700;
+  letter-spacing: 0.12em; min-width: 60px;
+}
+.gr-status {
+  padding: 3px 10px; border-radius: var(--r-pill);
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.07em;
+  background: rgba(34,197,94,0.1); color: #16a34a;
+}
+.gr-status.untrained { background: rgba(28,28,30,0.06); color: rgba(28,28,30,0.4); }
+
+.gr-phrase-wrap { flex: 1; position: relative; }
+.gr-phrase {
+  font-size: 0.88rem; font-weight: 400; color: var(--charcoal-mid);
+  padding: 7px 12px; border-radius: 8px;
+  border: 1.5px solid transparent;
+  background: transparent; width: 100%;
+  font-family: 'Montserrat', sans-serif; letter-spacing: 0.02em;
+  transition: all 0.2s;
+}
+.gr-phrase:focus {
+  outline: none;
+  border-color: var(--orange);
+  background: rgba(255,154,0,0.05);
+  color: var(--charcoal);
+}
+.gr-phrase:read-only { cursor: default; }
+
+.gr-actions { display: flex; gap: 6px; }
+
+.gr-delete-btn {
+  padding: 6px 12px; border-radius: var(--r-pill);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+  color: rgba(220,38,38,0.7);
+  border: 1.5px solid rgba(220,38,38,0.18);
+  background: rgba(220,38,38,0.04);
+  transition: all 0.2s; cursor: pointer;
+}
+.gr-delete-btn:hover { background: rgba(220,38,38,0.10); border-color: rgba(220,38,38,0.4); color: #dc2626; }
+
+.gr-edit-btn {
+  padding: 6px 12px; border-radius: var(--r-pill);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+  color: rgba(28,28,30,0.45);
+  border: 1.5px solid rgba(28,28,30,0.12);
+  background: rgba(28,28,30,0.03);
+  transition: all 0.2s; cursor: pointer;
+}
+.gr-edit-btn:hover { border-color: var(--orange); color: var(--orange); background: var(--orange-dim); }
+
+.gr-save-btn {
+  padding: 6px 12px; border-radius: var(--r-pill);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+  background: var(--orange); color: #fff;
+  border: none; transition: all 0.2s; cursor: pointer;
+  display: none;
+}
+.gr-save-btn.visible { display: inline-flex; }
+.gr-save-btn:hover { background: #e08800; }
+
+.data-retrain-notice {
+  padding: 14px 18px; border-radius: var(--r-lg);
+  background: rgba(255,154,0,0.08);
+  border: 1.5px solid rgba(255,154,0,0.22);
+  font-size: 0.8rem; color: rgba(255,154,0,0.85);
+  font-weight: 600; margin-top: 20px; display: none;
+}
+.data-retrain-notice.visible { display: block; }
+
+/* Tab 2: Visualization */
+.viz-layout {
+  display: flex; gap: 32px; align-items: flex-start;
+  justify-content: center; padding: 8px 0;
+}
+
+.person-svg-wrap {
+  flex-shrink: 0; position: relative;
+  width: 220px;
+}
+
+.person-svg {
+  width: 100%; display: block;
+  filter: drop-shadow(0 8px 28px rgba(0,0,0,0.12));
+}
+
+/* SVG body regions */
+.body-region {
+  cursor: pointer;
+  transition: opacity 0.25s;
+  opacity: 0;
+}
+.body-region.has-gestures { opacity: 1; }
+.body-region:hover { filter: brightness(1.15); }
+
+.viz-info-col {
+  flex: 1; max-width: 380px;
+  display: flex; flex-direction: column; gap: 12px;
+  padding-top: 8px;
+}
+
+.viz-hint {
+  font-size: 0.78rem; color: rgba(28,28,30,0.4);
+  line-height: 1.6; letter-spacing: 0.02em;
+}
+.viz-hint strong { color: var(--orange); font-weight: 700; }
+
+.region-card {
+  border-radius: var(--r-lg); padding: 18px 20px;
+  border: 1.5px solid rgba(28,28,30,0.08);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  display: none;
+}
+.region-card.visible { display: block; }
+.region-card-title {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--orange); margin-bottom: 12px;
+}
+.region-gesture-list { display: flex; flex-direction: column; gap: 8px; }
+.rg-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: var(--r-md);
+  background: rgba(28,28,30,0.04);
+}
+.rg-item-name {
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
+  min-width: 50px;
+}
+.rg-item-phrase {
+  font-size: 0.82rem; color: var(--charcoal-mid); flex: 1;
+}
+.rg-item-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--orange); flex-shrink: 0;
+}
+
+.viz-empty {
+  font-size: 0.82rem; color: rgba(28,28,30,0.35);
+  font-style: italic; text-align: center; padding: 20px;
+}
+
+/* ════════════════════════════════════════════════
+   MODALS
+════════════════════════════════════════════════ */
+.modal-ov {
+  position: fixed; inset: 0; z-index: 1000;
+  background: rgba(0,0,0,0.30);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-ov.hidden { display: none; }
+
+.modal-card {
+  max-width: 500px; width: 92%;
+  padding: 46px 40px; text-align: center;
+}
+.modal-card h2 {
+  font-size: 1.42rem; font-weight: 700;
+  color: var(--charcoal); margin-bottom: 10px;
+}
+.modal-card > p {
+  font-size: 0.86rem; color: var(--charcoal-mid);
+  line-height: 1.68; margin-bottom: 22px;
+}
+
+.bp-options {
+  display: flex; gap: 11px; justify-content: center;
+  margin: 6px 0 30px; flex-wrap: wrap;
+}
+.bp-toggle {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; user-select: none;
+  background: rgba(245,245,240,0.88);
+  border: 2px solid rgba(28,28,30,0.10);
+  border-radius: 18px; padding: 18px 22px;
+  transition: all 0.2s; min-width: 94px;
+}
+.bp-toggle input { display: none; }
+.bp-toggle.sel { border-color: var(--orange); background: var(--orange-dim); }
+.bp-icon-text {
+  font-size: 0.78rem; font-weight: 600;
+  letter-spacing: 0.04em; color: rgba(28,28,30,0.5);
+}
+.bp-label-text {
+  font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase;
+}
+.bp-icon-mark {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid rgba(28,28,30,0.18);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.72rem; font-weight: 700; color: rgba(28,28,30,0.3);
+  transition: all 0.2s;
+}
+.bp-toggle.sel .bp-icon-mark {
+  border-color: var(--orange); color: var(--orange);
+  background: var(--orange-dim);
+}
+
+.lighting-card-icon {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: rgba(255,154,0,0.1);
+  border: 2px solid rgba(255,154,0,0.25);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 18px;
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em;
+  color: var(--orange);
+}
+.lighting-list {
+  text-align: left; list-style: none;
+  display: flex; flex-direction: column; gap: 10px;
+  margin: 6px 0 30px;
+}
+.lighting-list li {
+  font-size: 0.86rem; color: rgba(28,28,30,0.58);
+  line-height: 1.55; display: flex; gap: 10px; align-items: flex-start;
+}
+.lighting-list li::before {
+  content: '–'; color: var(--orange);
+  font-weight: 700; flex-shrink: 0; margin-top: 1px;
 }
 </style>
 </head>
 <body>
 
-<!-- ══════════════════ WIZARD ══════════════════ -->
-<div id="wizard">
-  <div class="wizard-card">
-    <div class="wizard-header">
-      <div class="wizard-logo">GestureVoice Setup</div>
-      <div class="wizard-title" id="wizardTitle">Welcome</div>
-      <div class="wizard-sub" id="wizardSub">Let's set up your voice in a few steps</div>
-      <div class="wizard-steps" id="wizardSteps"></div>
+<div id="camera-root" style="position:absolute;inset:0;display:none;">
+  <video id="video" autoplay playsinline muted
+    style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;"></video>
+  <canvas id="canvas"
+    style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;"></canvas>
+</div>
+
+<div id="screen-landing" class="screen active">
+  <div class="aura-rings">
+    <div class="aura-ring"></div>
+    <div class="aura-ring"></div>
+    <div class="aura-ring"></div>
+    <div class="aura-ring"></div>
+  </div>
+  <div class="landing-wrap">
+    <h1 class="greeting">Hello, <span class="greeting-name" id="user-name">Friend</span></h1>
+    <p class="greeting-sub">Gesture voice assistant</p>
+    <div class="landing-cards">
+      <button class="action-card" id="btn-task">
+        <div class="action-card-icon">TASK</div>
+        <span class="action-card-label">Do Task</span>
+        <span class="action-card-sub">Start recognition</span>
+      </button>
+      <button class="action-card" id="btn-train">
+        <div class="action-card-icon">TRAIN</div>
+        <span class="action-card-label">Train</span>
+        <span class="action-card-sub">Record gestures</span>
+      </button>
+      <button class="action-card" id="btn-data">
+        <div class="action-card-icon">DATA</div>
+        <span class="action-card-label">Data</span>
+        <span class="action-card-sub">Manage gestures</span>
+      </button>
     </div>
-    <div class="wizard-body" id="wizardBody"></div>
+    <button class="name-edit-link" id="btn-edit-name">Edit name</button>
   </div>
 </div>
 
-<!-- ══════════════════ APP ══════════════════ -->
-<div id="app">
-  <header class="app-header">
-    <div class="app-logo">Gesture<span>Voice</span></div>
-    <div class="app-header-right">
-      <div class="ws-badge">
-        <div class="ws-dot" id="wsDot"></div>
-        <span id="wsLabel">CONNECTING</span>
-      </div>
-      <button class="btn-sm" id="btnSetupAgain">⟳ Setup</button>
+<div id="screen-train" class="screen">
+  <div class="topbar">
+    <button class="link-back" id="btn-train-back">Back</button>
+    <span class="topbar-title">Training</span>
+    <div class="topbar-spacer"></div>
+    <div class="ws-pill">
+      <div class="ws-dot" id="ws-dot"></div>
+      <span class="ws-text" id="ws-text">–</span>
     </div>
-  </header>
+  </div>
 
-  <div class="app-main">
-    <div class="canvas-pane">
-      <video id="video" autoplay muted playsinline></video>
-      <canvas id="overlay"></canvas>
-      <div class="trigger-flash" id="triggerFlash"></div>
-      <div class="mode-badge" id="modeBadge">READY</div>
-      <div class="triggered-label" id="triggeredLabel"></div>
-      <div class="conf-wrap"><div class="conf-bar" id="confBar"></div></div>
+  <div class="train-layout">
+    <div class="camera-pane" id="train-cam-mount">
+      <div class="mode-badge" id="mode-badge">READY</div>
+
+      <div class="countdown-ov hidden" id="countdown-ov">
+        <div class="cd-label" id="cd-label">GET READY</div>
+        <span class="cd-num" id="cd-num">5</span>
+      </div>
+
+      <div class="gesture-lbl hidden" id="gesture-lbl"></div>
+      <div class="trigger-flash" id="train-flash"></div>
+      <div class="triggered-lbl" id="train-triggered"></div>
+
+      <div class="agenda-strip">
+        <div class="agenda-row" id="agenda-row"></div>
+      </div>
     </div>
 
-    <aside class="sidebar">
-      <div class="sidebar-tabs">
-        <div class="sidebar-tab active" data-tab="gestures">Gestures</div>
-        <div class="sidebar-tab" data-tab="record">Record</div>
-        <div class="sidebar-tab" data-tab="log">Log</div>
-      </div>
+    <div class="train-panel">
+      <div class="panel-label">Training Process</div>
 
-      <div class="sidebar-panel active" id="panel-gestures">
-        <div class="section-label">Active Gestures</div>
-        <div class="gesture-tiles" id="gestureTiles"></div>
-        <button class="btn-primary" id="btnTrainGo" disabled>▶ Train & Start</button>
-        <button class="btn-secondary" id="btnAddMore">+ Add Another Gesture</button>
-        <button class="btn-danger" id="btnReset">Reset Everything</button>
-      </div>
-
-      <div class="sidebar-panel" id="panel-record">
-        <div class="section-label">Neutral Baseline</div>
-        <div class="smooth-info">Sit relaxed, no gesture. This teaches the system your resting position.</div>
-        <button class="btn-secondary" id="btnNeutral">⬤ Record Neutral</button>
-        <div class="rec-card" id="neutralRecCard">
-          <div class="rec-card-label">Progress</div>
-          <div class="rec-bar-wrap" style="background:var(--surface2);border-radius:100px;height:8px;overflow:hidden;margin-bottom:6px;">
-            <div class="rec-bar" id="neutralBar" style="height:100%;width:0%;background:var(--accent);border-radius:100px;transition:width 0.2s;"></div>
+      <div class="step" id="step-neutral">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h4>Neutral Expression</h4>
+          <p>Sit naturally. This is your resting baseline.</p>
+          <div class="prog-bar hidden" id="neutral-prog">
+            <div class="prog-fill" id="neutral-fill"></div>
           </div>
-          <div class="rec-count" id="neutralCount" style="font-family:var(--mono);font-size:12px;color:var(--muted);">0 / 50 frames</div>
-        </div>
-
-        <div class="section-label" style="margin-top:20px;">Custom Gestures</div>
-        <div id="customRecList"></div>
-        <div class="add-gesture-form" id="addGestureForm">
-          <input type="text" id="customPhrase" placeholder='Phrase to speak (e.g. "I need help")' />
-          <input type="text" id="customName" placeholder='Gesture name (e.g. "fist raise")' />
-          <button class="btn-secondary" id="btnAddCustom">+ Add this gesture</button>
+          <button class="btn btn-primary btn-sm" id="btn-neutral">Record Neutral</button>
+          <span class="status-ok hidden" id="neutral-ok">Baseline captured</span>
         </div>
       </div>
 
-      <div class="sidebar-panel" id="panel-log">
-        <div class="section-label">Activity Log</div>
-        <div id="log"></div>
+      <div class="rule"></div>
+
+      <div class="step locked" id="step-gestures">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h4>Add Gestures</h4>
+          <div class="g-cards" id="g-cards"></div>
+          <button class="btn btn-primary btn-sm" id="btn-add">Train YES</button>
+        </div>
       </div>
-    </aside>
+
+      <div class="rule"></div>
+
+      <div class="step locked" id="step-test">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h4>Demo Mode</h4>
+          <div class="test-box" id="test-box">Waiting for gesture lock-in...</div>
+          <div class="test-actions">
+            <button class="btn btn-primary btn-sm" id="btn-confirm">Confirm</button>
+            <button class="btn btn-glass btn-sm" id="btn-redo">Redo</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="rule"></div>
+
+      <button class="btn btn-primary btn-block" id="btn-launch" disabled>Launch</button>
+    </div>
+  </div>
+</div>
+
+<div id="screen-task" class="screen">
+  <div class="task-camera" id="task-cam-mount">
+    <div class="task-controls">
+      <button class="task-done-btn" id="btn-task-done">Done</button>
+      <div class="landmark-toggle" id="landmark-toggle" title="Toggle landmark overlay">
+        <div class="toggle-track on" id="toggle-track">
+          <div class="toggle-thumb"></div>
+        </div>
+        <span class="toggle-label">Landmarks</span>
+      </div>
+    </div>
+
+    <div class="live-indicator">
+      <div class="live-dot"></div>
+      <span class="live-label">LIVE</span>
+    </div>
+
+    <div class="conf-rail">
+      <div class="conf-fill" id="conf-fill"></div>
+    </div>
+
+    <div class="freq-canvas-wrap" id="freq-wrap">
+      <canvas id="freq-canvas"></canvas>
+    </div>
+
+    <div class="task-flash" id="task-flash"></div>
+
+    <div class="narration-bar">
+      <div class="audio-viz" id="audio-viz">
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+        <div class="viz-bar"></div>
+      </div>
+      <div class="narration-content">
+        <div class="narration-eyebrow">Recognized Command</div>
+        <div class="narration-text idle" id="narration-text">Listening for gestures...</div>
+        <div class="narration-confidence hidden" id="narration-conf"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="screen-data" class="screen">
+  <div class="data-topbar">
+    <button class="link-back" id="btn-data-back">Back</button>
+    <div class="data-tabs">
+      <button class="data-tab active" data-tab="info">Gesture Data</button>
+      <button class="data-tab" data-tab="viz">Visualization</button>
+    </div>
+    <div class="topbar-spacer"></div>
+  </div>
+
+  <div class="data-body">
+    <div class="data-panel active" id="panel-info">
+      
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div class="data-section-title" style="margin-bottom:0;">Tracked Body Parts</div>
+        <button id="btn-edit-bp" class="link-back" style="font-size:0.65rem; padding:0;">EDIT</button>
+      </div>
+      <div class="body-parts-display" id="bp-display"></div>
+
+      <div class="data-section-title">Stored Gestures</div>
+      <div id="gesture-list"></div>
+
+      <div class="data-retrain-notice" id="retrain-notice">
+        A gesture was deleted. Return to Train to rebuild the model before using Do Task.
+      </div>
+    </div>
+
+    <div class="data-panel" id="panel-viz">
+      <div class="viz-layout">
+        <div class="person-svg-wrap">
+          <svg class="person-svg" viewBox="0 0 220 480" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="110" cy="58" rx="42" ry="48"
+              fill="rgba(28,28,30,0.07)" stroke="rgba(28,28,30,0.14)" stroke-width="1.5"/>
+            <rect x="97" y="104" width="26" height="26"
+              fill="rgba(28,28,30,0.06)" stroke="rgba(28,28,30,0.10)" stroke-width="1"/>
+            <path d="M68 130 Q110 122 152 130 L158 282 Q110 292 62 282 Z"
+              fill="rgba(28,28,30,0.07)" stroke="rgba(28,28,30,0.13)" stroke-width="1.5"/>
+            <path d="M70 145 Q42 192 24 248"
+              stroke="rgba(28,28,30,0.13)" stroke-width="15" fill="none" stroke-linecap="round"/>
+            <path d="M150 145 Q178 192 196 248"
+              stroke="rgba(28,28,30,0.13)" stroke-width="15" fill="none" stroke-linecap="round"/>
+            <path d="M24 248 Q20 260 19 272"
+              stroke="rgba(28,28,30,0.11)" stroke-width="13" fill="none" stroke-linecap="round"/>
+            <path d="M196 248 Q200 260 201 272"
+              stroke="rgba(28,28,30,0.11)" stroke-width="13" fill="none" stroke-linecap="round"/>
+            <path d="M88 284 Q82 350 78 430"
+              stroke="rgba(28,28,30,0.12)" stroke-width="22" fill="none" stroke-linecap="round"/>
+            <path d="M132 284 Q138 350 142 430"
+              stroke="rgba(28,28,30,0.12)" stroke-width="22" fill="none" stroke-linecap="round"/>
+
+            <ellipse id="region-head" class="body-region" data-part="head"
+              cx="110" cy="58" rx="52" ry="57"
+              fill="rgba(255,154,0,0.14)"
+              stroke="rgba(255,154,0,0.65)" stroke-width="2"
+              stroke-dasharray="6 4"/>
+            <ellipse id="region-left_hand" class="body-region" data-part="left_hand"
+              cx="18" cy="278" rx="24" ry="20"
+              fill="rgba(255,154,0,0.14)"
+              stroke="rgba(255,154,0,0.65)" stroke-width="2"
+              stroke-dasharray="6 4"/>
+            <ellipse id="region-right_hand" class="body-region" data-part="right_hand"
+              cx="202" cy="278" rx="24" ry="20"
+              fill="rgba(255,154,0,0.14)"
+              stroke="rgba(255,154,0,0.65)" stroke-width="2"
+              stroke-dasharray="6 4"/>
+          </svg>
+        </div>
+
+        <div class="viz-info-col">
+          <p class="viz-hint">
+            Regions with a <strong>dashed orange border</strong> have registered gestures.<br/>
+            Click or hover a region to see the stored gestures for that body part.
+          </p>
+          <div class="region-card" id="region-card">
+            <div class="region-card-title" id="region-card-title">–</div>
+            <div class="region-gesture-list" id="region-gesture-list"></div>
+          </div>
+          <div class="viz-empty" id="viz-empty">No region selected.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-ov hidden" id="modal-bp">
+  <div class="modal-card glass-card">
+    <h2>What would you like to track?</h2>
+    <p>Select the body parts you want to use. Only those regions will be analyzed — keeping your data clean.</p>
+    <div class="bp-options" id="bp-options">
+      <label class="bp-toggle sel" data-part="head">
+        <input type="checkbox" value="head" checked/>
+        <div class="bp-icon-mark">H</div>
+        <span class="bp-label-text">Head</span>
+      </label>
+      <label class="bp-toggle" data-part="left_hand">
+        <input type="checkbox" value="left_hand"/>
+        <div class="bp-icon-mark">L</div>
+        <span class="bp-label-text">Left Hand</span>
+      </label>
+      <label class="bp-toggle" data-part="right_hand">
+        <input type="checkbox" value="right_hand"/>
+        <div class="bp-icon-mark">R</div>
+        <span class="bp-label-text">Right Hand</span>
+      </label>
+    </div>
+    <button class="btn btn-primary" id="btn-bp-confirm">Continue</button>
+  </div>
+</div>
+
+<div class="modal-ov hidden" id="modal-light">
+  <div class="modal-card glass-card">
+    <div class="lighting-card-icon">LIGHT</div>
+    <h2>Before we begin</h2>
+    <ul class="lighting-list">
+      <li>Sit in a well-lit area — natural light is best</li>
+      <li>Your upper body should be fully visible in the frame</li>
+      <li>Keep your background as plain as possible</li>
+      <li>Remove hats or glasses if you are tracking head movements</li>
+    </ul>
+    <button class="btn btn-primary" id="btn-light-ok">Ready</button>
   </div>
 </div>
 
 <script type="module">
 import {
-  FaceLandmarker,
-  HandLandmarker,
-  FilesetResolver,
-  DrawingUtils,
+  FaceLandmarker, HandLandmarker, FilesetResolver, DrawingUtils,
 } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs";
 
-// ── Config ─────────────────────────────────────────────────────────────
-const SESSIONS_REQUIRED  = 5;
+/* ── Constants ────────────────────────────────────────────────── */
 const FRAMES_PER_SESSION = 50;
-const MIN_SESSIONS       = 3;
-const QUEUE_LEN          = 12;
-const SMOOTH_WINDOW      = 5; // extra smoothing frames for stability
+const QUEUE_LEN          = 20;
 
-// Predefined gestures per body part
-const PRESET_GESTURES = {
-  face: [
-    { id: "face_yes", name: "Nod (Yes)", icon: "🙂", desc: "Move head down slightly or open mouth", phrase: "Yes" },
-    { id: "face_no",  name: "Shake (No)", icon: "😐", desc: "Turn head side to side or squint", phrase: "No" },
-    { id: "face_help", name: "Eyebrows Raised", icon: "😮", desc: "Raise eyebrows high", phrase: "Help" },
-    { id: "face_open", name: "Mouth Open", icon: "😯", desc: "Open mouth wide", phrase: "I need a moment" },
-    { id: "face_smile", name: "Wide Smile", icon: "😄", desc: "Smile broadly", phrase: "Thank you" },
-    { id: "face_blink", name: "Blink / Wink", icon: "😉", desc: "Exaggerated eye blink", phrase: "I understand" },
-  ],
-  left_hand: [
-    { id: "lh_yes",  name: "Thumbs Up", icon: "👍", desc: "Left hand thumbs up", phrase: "Yes" },
-    { id: "lh_no",   name: "Flat Palm", icon: "🤚", desc: "Left palm facing forward, flat", phrase: "No" },
-    { id: "lh_help", name: "Fist Raise", icon: "✊", desc: "Left hand closed fist", phrase: "Help" },
-    { id: "lh_point", name: "Index Point", icon: "👆", desc: "Left index finger extended up", phrase: "Wait" },
-    { id: "lh_wave",  name: "Open Wave",  icon: "👋", desc: "Left hand open, fingers spread", phrase: "Hello" },
-  ],
-  right_hand: [
-    { id: "rh_yes",  name: "Thumbs Up", icon: "👍", desc: "Right hand thumbs up", phrase: "Yes" },
-    { id: "rh_no",   name: "Flat Palm", icon: "🤚", desc: "Right palm facing forward, flat", phrase: "No" },
-    { id: "rh_help", name: "Fist Raise", icon: "✊", desc: "Right hand closed fist", phrase: "Help" },
-    { id: "rh_point", name: "Index Point", icon: "👆", desc: "Right index finger extended up", phrase: "Wait" },
-    { id: "rh_wave",  name: "Open Wave",  icon: "👋", desc: "Right hand open, fingers spread", phrase: "Hello" },
-  ],
-};
-
-// ── Landmark indices ────────────────────────────────────────────────────
 const FACE_IDX = {
-  top_lip: 13, bottom_lip: 14,
-  left_mouth: 61, right_mouth: 291,
-  left_eye_top: 159, left_eye_bottom: 145,
-  right_eye_top: 386, right_eye_bottom: 374,
-  left_eyebrow: 70, right_eyebrow: 300,
+  top_lip:13, bottom_lip:14, left_mouth:61, right_mouth:291,
+  left_eye_top:159, left_eye_bottom:145, right_eye_top:386, right_eye_bottom:374,
+  left_eyebrow:70, right_eyebrow:300,
 };
 const HAND_IDX = {
-  wrist: 0,
-  thumb_ip: 3, thumb_tip: 4,
-  index_mcp: 5, index_tip: 8,
-  middle_tip: 12, ring_tip: 16,
-  pinky_mcp: 17, pinky_tip: 20,
+  wrist:0, thumb_mcp:2, thumb_tip:4,
+  index_mcp:5, index_pip:6, index_tip:8,
+  middle_mcp:9, middle_tip:12,
+  ring_mcp:13, ring_tip:16,
+  pinky_mcp:17, pinky_tip:20,
 };
 
-// ── Wizard State ────────────────────────────────────────────────────────
-let selectedBodyParts = new Set();
-let selectedGestures  = new Set();   // gesture ids
-let wizardGestureQueue = [];         // ordered array of gesture ids to record
-let wizardGestureIndex = 0;          // which one we're recording now
-let wizardSessionIdx   = 0;
-let isWizardRecording  = false;
-let wizardNeutralDone  = false;
-let wizardNeutralFrames = 0;
+const GESTURE_ORDER  = ['yes','no','help'];
+const GESTURE_LABEL  = { yes:'YES', no:'NO', help:'HELP' };
+const GESTURE_PHRASE = { yes:'Yes', no:'No', help:'Help me' };
 
-// App state
-let socket = null;
+/* ── State ────────────────────────────────────────────────────── */
+const S = {
+  screen:   'landing',
+  userName: localStorage.getItem('gtts_name') || 'Friend',
+  bodyParts: JSON.parse(localStorage.getItem('gtts_bodyparts') || '["head"]'),
+  hasSeenQ: !!localStorage.getItem('gtts_bodyparts'),
+
+  neutralDone:   false,
+  neutralFrames: 0,
+
+  currentGestureIdx: 0,
+  sessionCounts: { yes:0, no:0, help:0 },
+  lockedGestures: new Set(),
+  testGestureId:  null,
+  testMode:       false,   
+
+  isCountingDown: false,
+  isRecording:    false,
+
+  agendaStatus: {},
+
+  isInference:     false,
+  showLandmarks:   true,
+  lastPhrase:      '',
+
+  deletedGestures: new Set(),
+};
+
+/* ── EMA Landmark Smoothing ───────────────────────────────────── */
+const EMA_A     = 0.08;  
+const HAND_HOLD = 12;    
+const MAX_LM_JUMP = 0.022; 
+let faceSmoothed = null;
+const handSmoothed  = {};    
+const handLastFrame = {};    
+let emaFrame = 0;
+
+function applyEMA(prev, cur) {
+  return cur.map((lm, i) => {
+    let nx = prev[i].x * (1 - EMA_A) + lm.x * EMA_A;
+    let ny = prev[i].y * (1 - EMA_A) + lm.y * EMA_A;
+    const nz = prev[i].z * (1 - EMA_A) + (lm.z || 0) * EMA_A;
+    const dx = nx - prev[i].x, dy = ny - prev[i].y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > MAX_LM_JUMP) {
+      const s = MAX_LM_JUMP / dist;
+      nx = prev[i].x + dx * s;
+      ny = prev[i].y + dy * s;
+    }
+    return { x: nx, y: ny, z: nz };
+  });
+}
+function cloneLM(raw) {
+  return raw.map(lm => ({x: lm.x, y: lm.y, z: lm.z || 0}));
+}
+
+const gestureDescriptions = {};
+
+/* ── Audio ────────────────────────────────────────────────────── */
+let audioCtx   = null;
+let analyser   = null;
+let vizAnimId  = null;
+let freqData   = null;
+
+/* ── MediaPipe ────────────────────────────────────────────────── */
 let faceLandmarker = null, handLandmarker = null;
-let mode = "NEUTRAL";
-let neutralFrames = 0;
-let gestureRegistry = {}; // id -> {name, phrase, icon, sessions:[0..4]}
-let activeGestureId = null, activeSessionIdx = null;
-let gestureIdCounter = 1;
-let gestureSessionData = {}; // id -> [c0,c1,c2,c3,c4]
-let predQueue = [];
-let smoothQueue = []; // extra smoothing
-let queueFill = 0;
-let isInference = false;
+let lastVideoTime  = -1;
+let cameraStarted  = false;
 
-// Wizard step definitions
-const WIZARD_STEPS = ["body_parts","gestures","neutral","record","done"];
-let wizardStep = 0;
+/* ── DOM refs ─────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const cameraRoot = $('camera-root');
+const video      = $('video');
+const canvas     = $('canvas');
+const ctx        = canvas.getContext('2d');
 
-// ── DOM ─────────────────────────────────────────────────────────────────
-const video       = document.getElementById("video");
-const canvas      = document.getElementById("overlay");
-const ctx         = canvas.getContext("2d");
-const wsDot       = document.getElementById("wsDot");
-const wsLabel     = document.getElementById("wsLabel");
-const modeBadge   = document.getElementById("modeBadge");
-const triggerFlash= document.getElementById("triggerFlash");
-const triggeredLbl= document.getElementById("triggeredLabel");
-const confBar     = document.getElementById("confBar");
-const neutralBar  = document.getElementById("neutralBar");
-const neutralCount= document.getElementById("neutralCount");
-const gestureTiles= document.getElementById("gestureTiles");
-const btnTrainGo  = document.getElementById("btnTrainGo");
-const logEl       = document.getElementById("log");
-let lastVideoTime = -1, frameCount = 0, lastT = performance.now();
+/* ════════════════════════════════════════════
+   NAVIGATION
+════════════════════════════════════════════ */
+function navigate(target) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  S.screen = target;
 
-// ══════════════════════════════════════════════
-// WIZARD LOGIC
-// ══════════════════════════════════════════════
+  if (target === 'landing') {
+    $('screen-landing').classList.add('active');
+    cameraRoot.style.display = 'none';
+    document.body.appendChild(cameraRoot);
 
-function buildStepDots(step) {
-  const dots = document.getElementById("wizardSteps");
-  dots.innerHTML = WIZARD_STEPS.map((_, i) => `
-    <div class="wizard-step-dot ${i < step ? "done" : i === step ? "active" : ""}"></div>
-  `).join("");
-}
+  } else if (target === 'train') {
+    $('screen-train').classList.add('active');
+    mountCamera($('train-cam-mount'));
+    ensureCamera();
+    onEnterTrain();
 
-function renderWizard() {
-  const step = WIZARD_STEPS[wizardStep];
-  buildStepDots(wizardStep);
+  } else if (target === 'task') {
+    $('screen-task').classList.add('active');
+    mountCamera($('task-cam-mount'));
+    ensureCamera();
+    connectWS();
 
-  const body = document.getElementById("wizardBody");
-  const title = document.getElementById("wizardTitle");
-  const sub   = document.getElementById("wizardSub");
-
-  if (step === "body_parts") {
-    title.textContent = "What can you move?";
-    sub.textContent   = "Select all that apply — we'll tailor gestures for you.";
-    body.innerHTML = `
-      <div class="wizard-section-title">Your moveable body parts</div>
-      <div class="bodypart-grid" id="bpGrid">
-        <div class="bodypart-card ${selectedBodyParts.has('face') ? 'selected' : ''}" data-part="face">
-          <div class="bodypart-icon">😊</div>
-          <div class="bodypart-label">Face</div>
-          <div class="bodypart-check">✓</div>
-        </div>
-        <div class="bodypart-card ${selectedBodyParts.has('left_hand') ? 'selected' : ''}" data-part="left_hand">
-          <div class="bodypart-icon">🤚</div>
-          <div class="bodypart-label">Left Hand</div>
-          <div class="bodypart-check">✓</div>
-        </div>
-        <div class="bodypart-card ${selectedBodyParts.has('right_hand') ? 'selected' : ''}" data-part="right_hand">
-          <div class="bodypart-icon">✋</div>
-          <div class="bodypart-label">Right Hand</div>
-          <div class="bodypart-check">✓</div>
-        </div>
-      </div>
-      <div class="bodypart-note">Select at least one to continue</div>
-      <div class="wizard-nav">
-        <div class="spacer"></div>
-        <button class="btn-wizard-next" id="bpNext" ${selectedBodyParts.size === 0 ? 'disabled' : ''}>Continue →</button>
-      </div>
-    `;
-    body.querySelectorAll(".bodypart-card").forEach(card => {
-      card.addEventListener("click", () => {
-        const part = card.dataset.part;
-        if (selectedBodyParts.has(part)) selectedBodyParts.delete(part);
-        else selectedBodyParts.add(part);
-        renderWizard();
-      });
-    });
-    body.querySelector("#bpNext").addEventListener("click", () => { wizardStep++; renderWizard(); });
-  }
-
-  else if (step === "gestures") {
-    title.textContent = "Choose your gestures";
-    sub.textContent   = "Pick which gestures you'd like to train. Start with essentials.";
-
-    // Build gesture options from selected body parts
-    const available = [...selectedBodyParts].flatMap(p => PRESET_GESTURES[p] || []);
-
-    body.innerHTML = `
-      <div class="wizard-section-title">Essential gestures (recommended)</div>
-      <div class="gesture-options" id="gestureOpts">
-        ${available.map(g => `
-          <div class="gesture-option ${selectedGestures.has(g.id) ? 'selected' : ''}" data-gid="${g.id}">
-            <div class="gesture-option-icon">${g.icon}</div>
-            <div class="gesture-option-text">
-              <div class="gesture-option-name">${g.name}</div>
-              <div class="gesture-option-desc">${g.desc} → speaks "<em>${g.phrase}</em>"</div>
-            </div>
-            <div class="gesture-option-check">✓</div>
-          </div>
-        `).join("")}
-      </div>
-      <div class="wizard-nav">
-        <button class="btn-wizard-back" id="gestBack">← Back</button>
-        <div class="spacer"></div>
-        <button class="btn-wizard-next" id="gestNext" ${selectedGestures.size === 0 ? 'disabled' : ''}>
-          Train ${selectedGestures.size} gesture${selectedGestures.size !== 1 ? 's' : ''} →
-        </button>
-      </div>
-    `;
-    body.querySelectorAll(".gesture-option").forEach(opt => {
-      opt.addEventListener("click", () => {
-        const gid = opt.dataset.gid;
-        if (selectedGestures.has(gid)) selectedGestures.delete(gid);
-        else selectedGestures.add(gid);
-        renderWizard();
-      });
-    });
-    body.querySelector("#gestBack").addEventListener("click", () => { wizardStep--; renderWizard(); });
-    body.querySelector("#gestNext").addEventListener("click", () => { wizardStep++; renderWizard(); });
-  }
-
-  else if (step === "neutral") {
-    title.textContent = "Capture your resting position";
-    sub.textContent   = "Sit naturally, relax your face and hands.";
-
-    const pct = Math.min(wizardNeutralFrames / FRAMES_PER_SESSION * 100, 100);
-    const done = wizardNeutralFrames >= FRAMES_PER_SESSION;
-
-    body.innerHTML = `
-      <div class="neutral-diagram">
-        <div class="neutral-diagram-icon">😌</div>
-        <div class="neutral-diagram-text">
-          Relax your face and let your hands rest naturally.<br/>
-          We'll capture ~2 seconds of your resting position.
-        </div>
-      </div>
-      <div class="rec-progress-area">
-        <div class="rec-session-label">
-          <span>Neutral frames captured</span>
-          <span>${wizardNeutralFrames} / ${FRAMES_PER_SESSION}</span>
-        </div>
-        <div class="rec-bar-wrap">
-          <div class="rec-bar ${done ? 'done' : ''}" style="width: ${pct}%"></div>
-        </div>
-      </div>
-      <div class="wizard-nav">
-        <button class="btn-wizard-back" id="neutBack">← Back</button>
-        <div class="spacer"></div>
-        <button class="btn-wizard-rec ${isWizardRecording ? 'recording' : ''}" id="neutRec">
-          ${isWizardRecording ? '■ Stop' : done ? '✓ Done — redo?' : '⬤ Record Neutral'}
-        </button>
-        <button class="btn-wizard-next" id="neutNext" ${!done ? 'disabled' : ''}>Next →</button>
-      </div>
-    `;
-    body.querySelector("#neutBack").addEventListener("click", () => {
-      if (isWizardRecording) { isWizardRecording = false; sendCmd({ command: "set_mode", mode: "NEUTRAL" }); }
-      wizardStep--; renderWizard();
-    });
-    body.querySelector("#neutRec").addEventListener("click", () => {
-      if (isWizardRecording) {
-        isWizardRecording = false;
-        sendCmd({ command: "set_mode", mode: "NEUTRAL" });
-      } else {
-        isWizardRecording = true;
-        wizardNeutralFrames = 0;
-        sendCmd({ command: "set_mode", mode: "TRAIN_NEUTRAL" });
-      }
-      renderWizard();
-    });
-    body.querySelector("#neutNext").addEventListener("click", () => {
-      if (isWizardRecording) { isWizardRecording = false; sendCmd({ command: "set_mode", mode: "NEUTRAL" }); }
-      // Build gesture queue
-      wizardGestureQueue = [...selectedGestures];
-      wizardGestureIndex = 0;
-      wizardSessionIdx   = 0;
-      // Register gestures
-      wizardGestureQueue.forEach(gid => {
-        const preset = Object.values(PRESET_GESTURES).flat().find(g => g.id === gid);
-        gestureRegistry[gid] = { name: preset.name, phrase: preset.phrase, icon: preset.icon, sessions: Array(SESSIONS_REQUIRED).fill(0) };
-        gestureSessionData[gid] = Array(SESSIONS_REQUIRED).fill(0);
-        sendCmd({ command: "set_phrase", gesture_id: gid, phrase: preset.phrase });
-      });
-      wizardStep++; renderWizard();
-    });
-  }
-
-  else if (step === "record") {
-    const gid = wizardGestureQueue[wizardGestureIndex];
-    const preset = Object.values(PRESET_GESTURES).flat().find(g => g.id === gid);
-    const sessions = gestureSessionData[gid] || Array(SESSIONS_REQUIRED).fill(0);
-    const currentCount = sessions[wizardSessionIdx] || 0;
-    const pct = Math.min(currentCount / FRAMES_PER_SESSION * 100, 100);
-    const sessionDone = currentCount >= FRAMES_PER_SESSION;
-    const completedSessions = sessions.filter(s => s >= FRAMES_PER_SESSION).length;
-    const allSessionsDone = completedSessions >= MIN_SESSIONS;
-    const isLast = wizardGestureIndex === wizardGestureQueue.length - 1;
-
-    title.textContent = `Train: ${preset.name}`;
-    sub.textContent   = `Gesture ${wizardGestureIndex + 1} of ${wizardGestureQueue.length}`;
-
-    body.innerHTML = `
-      <div class="rec-gesture-phrase">"${preset.phrase}"</div>
-      <div class="rec-instructions">
-        <strong>${preset.icon} ${preset.desc}</strong><br/>
-        Hold the gesture steady. We need <strong>${MIN_SESSIONS} sessions</strong> for accuracy. 
-        Each session is ~2 seconds.
-      </div>
-      <div class="rec-progress-area">
-        <div class="rec-session-label">
-          <span>Sessions (${completedSessions}/${MIN_SESSIONS} minimum)</span>
-          <span>Session ${wizardSessionIdx + 1} of ${SESSIONS_REQUIRED}</span>
-        </div>
-        <div class="rec-dots">
-          ${Array.from({length: SESSIONS_REQUIRED}, (_, i) => `
-            <div class="rec-dot ${sessions[i] >= FRAMES_PER_SESSION ? 'done' : i === wizardSessionIdx ? 'active' : ''}"></div>
-          `).join("")}
-        </div>
-        <div class="rec-bar-wrap">
-          <div class="rec-bar ${sessionDone ? 'done' : ''}" style="width:${pct}%"></div>
-        </div>
-        <div class="rec-count">${currentCount} / ${FRAMES_PER_SESSION} frames</div>
-      </div>
-      <div class="wizard-nav" style="flex-wrap:wrap;gap:8px;">
-        ${wizardGestureIndex > 0 ? '<button class="btn-wizard-back" id="recSkipBack">← Previous</button>' : ''}
-        <div class="spacer"></div>
-        <button class="btn-wizard-rec ${isWizardRecording ? 'recording' : ''}" id="recBtn" ${sessionDone && !isWizardRecording ? 'style="display:none"' : ''}>
-          ${isWizardRecording ? '■ Stop' : '⬤ Record Session ' + (wizardSessionIdx + 1)}
-        </button>
-        ${allSessionsDone ? `<button class="btn-wizard-next" id="recNext">${isLast ? 'Finish →' : 'Next Gesture →'}</button>` : ''}
-      </div>
-    `;
-
-    body.querySelector("#recBtn")?.addEventListener("click", () => {
-      if (isWizardRecording) {
-        isWizardRecording = false;
-        sendCmd({ command: "set_mode", mode: "NEUTRAL" });
-        activeGestureId = null; activeSessionIdx = null;
-        renderWizard();
-      } else {
-        isWizardRecording = true;
-        activeGestureId   = gid;
-        activeSessionIdx  = wizardSessionIdx;
-        sendCmd({ command: "set_mode", mode: "TRAIN_GESTURE", gesture_id: gid, session_idx: wizardSessionIdx });
-        renderWizard();
-      }
-    });
-    body.querySelector("#recNext")?.addEventListener("click", () => {
-      if (isWizardRecording) { isWizardRecording = false; sendCmd({ command: "set_mode", mode: "NEUTRAL" }); }
-      if (isLast) {
-        wizardStep++; renderWizard();
-      } else {
-        wizardGestureIndex++;
-        wizardSessionIdx = 0;
-        renderWizard();
-      }
-    });
-    body.querySelector("#recSkipBack")?.addEventListener("click", () => {
-      if (isWizardRecording) { isWizardRecording = false; sendCmd({ command: "set_mode", mode: "NEUTRAL" }); }
-      wizardGestureIndex--;
-      wizardSessionIdx = 0;
-      renderWizard();
-    });
-  }
-
-  else if (step === "done") {
-    title.textContent = "All set!";
-    sub.textContent   = "Your gestures are trained and ready.";
-    const allGestures = wizardGestureQueue.map(gid => {
-      const reg = gestureRegistry[gid];
-      return reg ? `<div class="summary-item">
-        <div class="summary-item-icon">${reg.icon}</div>
-        <div class="summary-item-text">
-          <div class="summary-item-name">${reg.name}</div>
-          <div class="summary-item-phrase">"${reg.phrase}"</div>
-        </div>
-        <div class="summary-check">✓</div>
-      </div>` : "";
-    }).join("");
-
-    body.innerHTML = `
-      <div class="wizard-section-title">Trained gestures</div>
-      <div class="summary-list">${allGestures}</div>
-      <div class="wizard-nav" style="margin-top:32px;">
-        <div class="spacer"></div>
-        <button class="btn-wizard-next" id="doneBtn">▶ Start Using GestureVoice</button>
-      </div>
-    `;
-    body.querySelector("#doneBtn").addEventListener("click", launchApp);
+  } else if (target === 'data') {
+    $('screen-data').classList.add('active');
+    renderDataScreen();
   }
 }
 
-function launchApp() {
-  // Train model
-  sendCmd({ command: "train" });
-
-  // Populate gesture tiles
-  refreshGestureTiles();
-
-  // Hide wizard, show app
-  document.getElementById("wizard").classList.add("hidden");
-  document.getElementById("app").classList.add("visible");
-
-  // Start camera + mediapipe
-  initMediaPipe().then(() => startWebcam()).then(() => renderLoop());
+function mountCamera(mount) {
+  if (!mount.contains(cameraRoot)) {
+    mount.insertBefore(cameraRoot, mount.firstChild);
+  }
+  cameraRoot.style.display = 'block';
 }
 
-function refreshGestureTiles() {
-  gestureTiles.innerHTML = Object.entries(gestureRegistry).map(([id, g]) => `
-    <div class="gesture-tile" id="tile_${id}">
-      <div class="gesture-tile-icon">${g.icon}</div>
-      <div class="gesture-tile-body">
-        <div class="gesture-tile-name">${g.name}</div>
-        <div class="gesture-tile-phrase">"${g.phrase}"</div>
+function ensureCamera() {
+  connectWS();
+  if (!cameraStarted) {
+    cameraStarted = true;
+    initMediaPipe().then(() => startWebcam()).then(() => renderLoop());
+  }
+}
+
+function onEnterTrain() {
+  if (!S.hasSeenQ) showModal('modal-bp');
+  else             showModal('modal-light');
+  renderAgenda();
+  renderGCards();
+  updateAddBtn();
+}
+
+/* ════════════════════════════════════════════
+   NAME
+════════════════════════════════════════════ */
+function setNameDisplay() {
+  $('user-name').textContent = S.userName;
+}
+$('btn-edit-name').addEventListener('click', () => {
+  const n = prompt('Your name:', S.userName);
+  if (n?.trim()) {
+    S.userName = n.trim();
+    localStorage.setItem('gtts_name', S.userName);
+    setNameDisplay();
+  }
+});
+setNameDisplay();
+
+/* ════════════════════════════════════════════
+   LANDING BUTTONS
+════════════════════════════════════════════ */
+$('btn-train').addEventListener('click', () => navigate('train'));
+$('btn-data' ).addEventListener('click', () => navigate('data'));
+$('btn-task' ).addEventListener('click', () => {
+  if (S.isInference) navigate('task');
+  else alert('Complete training first — then use Launch to activate the model.');
+});
+
+$('btn-train-back').addEventListener('click', () => navigate('landing'));
+$('btn-task-done' ).addEventListener('click', () => { sendCmd({command:'set_mode',mode:'NEUTRAL'}); navigate('landing'); });
+$('btn-data-back' ).addEventListener('click', () => navigate('landing'));
+
+/* ════════════════════════════════════════════
+   LANDMARK TOGGLE
+════════════════════════════════════════════ */
+$('landmark-toggle').addEventListener('click', () => {
+  S.showLandmarks = !S.showLandmarks;
+  $('toggle-track').classList.toggle('on', S.showLandmarks);
+  if (!S.showLandmarks) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+});
+
+/* ════════════════════════════════════════════
+   MODALS
+════════════════════════════════════════════ */
+function showModal(id) { $(id).classList.remove('hidden'); }
+function hideModal(id) { $(id).classList.add('hidden'); }
+
+document.querySelectorAll('#bp-options .bp-toggle').forEach(t => {
+  t.addEventListener('click', () => {
+    const inp = t.querySelector('input');
+    inp.checked = !inp.checked;
+    t.classList.toggle('sel', inp.checked);
+  });
+});
+
+$('btn-edit-bp').addEventListener('click', () => {
+  document.querySelectorAll('#bp-options .bp-toggle').forEach(t => {
+    const inp = t.querySelector('input');
+    const sel = S.bodyParts.includes(inp.value);
+    inp.checked = sel;
+    t.classList.toggle('sel', sel);
+  });
+  showModal('modal-bp');
+});
+
+$('btn-bp-confirm').addEventListener('click', () => {
+  const sel = [...document.querySelectorAll('#bp-options input:checked')].map(i => i.value);
+  if (!sel.length) { alert('Select at least one body part.'); return; }
+  S.bodyParts = sel;
+  localStorage.setItem('gtts_bodyparts', JSON.stringify(sel));
+  
+  if (!S.hasSeenQ) {
+    S.hasSeenQ = true;
+    hideModal('modal-bp');
+    showModal('modal-light');
+  } else {
+    hideModal('modal-bp');
+    if (S.screen === 'data') {
+      renderBpDisplay();
+      renderViz();
+    }
+  }
+});
+
+$('btn-light-ok').addEventListener('click', () => hideModal('modal-light'));
+
+/* ════════════════════════════════════════════
+   AGENDA
+════════════════════════════════════════════ */
+const AGENDA = [
+  {id:'neutral',  label:'Neutral'},
+  {id:'yes',       label:'YES x4'},
+  {id:'test_yes',  label:'Test YES'},
+  {id:'no',        label:'NO x4'},
+  {id:'test_no',   label:'Test NO'},
+  {id:'help',      label:'HELP x4'},
+  {id:'test_help', label:'Test HELP'},
+  {id:'launch',    label:'Launch'},
+];
+
+function renderAgenda() {
+  $('agenda-row').innerHTML = AGENDA.map(a => {
+    const st = S.agendaStatus[a.id] || 'pending';
+    return `<div class="a-item ${st}" id="a-${a.id}">
+      <span class="a-dot"></span><span>${a.label}</span>
+    </div>`;
+  }).join('');
+}
+
+function setAgenda(id, st) {
+  S.agendaStatus[id] = st;
+  const el = $('a-' + id);
+  if (!el) return;
+  el.className = 'a-item ' + st;
+  if (st === 'active') el.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
+}
+
+/* ════════════════════════════════════════════
+   NEUTRAL CAPTURE
+════════════════════════════════════════════ */
+$('btn-neutral').addEventListener('click', () => {
+  sendCmd({command:'set_mode', mode:'TRAIN_NEUTRAL'});
+  $('btn-neutral').disabled = true;
+  $('neutral-prog').classList.remove('hidden');
+  setAgenda('neutral','active');
+  updateModeBadge('TRAIN_NEUTRAL');
+});
+
+function onNeutralProgress(count) {
+  S.neutralFrames = count;
+  const pct = Math.min(100, (count / FRAMES_PER_SESSION) * 100);
+  $('neutral-fill').style.width = pct + '%';
+  if (count >= FRAMES_PER_SESSION) {
+    S.neutralDone = true;
+    sendCmd({command:'set_mode', mode:'NEUTRAL'});
+    $('btn-neutral').style.display = 'none';
+    $('neutral-ok').classList.remove('hidden');
+    $('step-gestures').classList.remove('locked');
+    setAgenda('neutral','done');
+    renderAgenda();
+    updateModeBadge('NEUTRAL');
+  }
+}
+
+/* ════════════════════════════════════════════
+   GESTURE CARDS
+════════════════════════════════════════════ */
+function renderGCards() {
+  $('g-cards').innerHTML = GESTURE_ORDER.map((gid, i) => {
+    const count  = S.sessionCounts[gid];
+    const locked = S.lockedGestures.has(gid);
+    const isCur  = i === S.currentGestureIdx;
+    const cls    = locked ? 'locked-in' : isCur ? 'current' : '';
+    const dots   = [0,1,2,3].map(j => {
+      let c = 'sess-dot';
+      if (j < count) c += ' full';
+      else if (j === count && !locked) c += ' active';
+      return `<div class="${c}"></div>`;
+    }).join('');
+    const lockedLabel = locked ? '<span class="g-card-locked">Locked</span>' : '';
+    return `<div class="g-card ${cls}">
+      <span class="g-card-name">${GESTURE_LABEL[gid]}</span>
+      <div class="sess-dots">${dots}</div>
+      ${lockedLabel}
+    </div>`;
+  }).join('');
+}
+
+function updateAddBtn() {
+  const gid   = GESTURE_ORDER[S.currentGestureIdx];
+  const btn   = $('btn-add');
+  if (!gid)   { btn.disabled = true; btn.textContent = 'All done'; return; }
+  const count = S.sessionCounts[gid];
+  if (count === 0)  btn.textContent = `Train ${GESTURE_LABEL[gid]}`;
+  else if (count < 4) btn.textContent = `Record Again (${count}/4)`;
+  else              { btn.disabled = true; btn.textContent = `${GESTURE_LABEL[gid]} locked`; }
+}
+
+/* ════════════════════════════════════════════
+   COUNTDOWN + RECORDING
+════════════════════════════════════════════ */
+$('btn-add').addEventListener('click', () => {
+  if (S.isCountingDown || S.isRecording) return;
+  startGestureRound();
+});
+
+function startGestureRound() {
+  const gid = GESTURE_ORDER[S.currentGestureIdx];
+  if (!gid) return;
+  const sessionIdx = S.sessionCounts[gid];
+
+  $('gesture-lbl').textContent = GESTURE_LABEL[gid];
+  $('gesture-lbl').classList.remove('hidden');
+  $('btn-add').disabled = true;
+  S.isCountingDown = true;
+  $('cd-label').textContent = `PERFORM: ${GESTURE_LABEL[gid]}`;
+
+  if (sessionIdx === 0) {
+    runCountdown(5, () => beginRecording(gid, sessionIdx));
+  } else {
+    showGoFlash(`PERFORM: ${GESTURE_LABEL[gid]}`, () => beginRecording(gid, sessionIdx));
+  }
+}
+
+function beginRecording(gid, sessionIdx) {
+  S.isCountingDown = false;
+  S.isRecording    = true;
+  sendCmd({command:'set_phrase',   gesture_id: gid, phrase: GESTURE_PHRASE[gid]});
+  sendCmd({command:'set_mode', mode:'TRAIN_GESTURE', gesture_id: gid, session_idx: sessionIdx});
+  setAgenda(gid, 'active');
+  renderGCards();
+  updateModeBadge('TRAIN_GESTURE');
+}
+
+function showGoFlash(label, onDone) {
+  const ov  = $('countdown-ov');
+  const num = $('cd-num');
+  $('cd-label').textContent = label;
+  num.textContent = 'GO';
+  num.classList.remove('pulse');
+  void num.offsetWidth;
+  num.classList.add('pulse');
+  ov.classList.remove('hidden');
+  S.countdownHandle = setTimeout(() => {
+    ov.classList.add('hidden');
+    onDone();
+  }, 600);
+}
+
+function runCountdown(n, onDone) {
+  const ov  = $('countdown-ov');
+  const num = $('cd-num');
+  ov.classList.remove('hidden');
+  num.classList.remove('pulse');
+  void num.offsetWidth; // reflow
+  num.textContent = n;
+  num.classList.add('pulse');
+  if (n === 0) { ov.classList.add('hidden'); onDone(); return; }
+  S.countdownHandle = setTimeout(() => runCountdown(n - 1, onDone), 1000);
+}
+
+/* ════════════════════════════════════════════
+   SESSION COMPLETE
+════════════════════════════════════════════ */
+function onSessionComplete(msg) {
+  const gid  = msg.gesture_id;
+  S.sessionCounts[gid] = msg.session_idx + 1;
+  S.isRecording = false;
+  updateModeBadge('NEUTRAL');
+  $('gesture-lbl').classList.add('hidden');
+  renderGCards();
+
+  if (S.sessionCounts[gid] >= 4) {
+    S.lockedGestures.add(gid);
+    setAgenda(gid, 'done');
+    renderGCards();
+    showTestPhase(gid);
+  } else {
+    updateAddBtn();
+    setTimeout(() => {
+      if (!S.isRecording && !S.isCountingDown) startGestureRound();
+    }, 650);
+  }
+}
+
+/* ════════════════════════════════════════════
+   TEST PHASE
+════════════════════════════════════════════ */
+function showTestPhase(gid) {
+  S.testGestureId = gid;
+  S.testMode      = true;
+  $('step-test').classList.remove('locked');
+  $('test-box').textContent = `Demo mode — perform "${GESTURE_LABEL[gid]}" and the voice will fire automatically.`;
+  setAgenda('test_' + gid, 'active');
+  $('step-test').scrollIntoView({behavior:'smooth', block:'nearest'});
+  sendCmd({command:'train'});
+}
+
+$('btn-confirm').addEventListener('click', () => {
+  S.testMode = false;
+  sendCmd({command:'set_mode', mode:'NEUTRAL'});
+  setAgenda('test_' + S.testGestureId, 'done');
+  S.currentGestureIdx++;
+  $('step-test').classList.add('locked');
+  $('test-box').textContent = 'Waiting for gesture lock-in...';
+  if (S.lockedGestures.size >= 3) {
+    $('btn-launch').disabled = false;
+    setAgenda('launch','active');
+  }
+  if (S.currentGestureIdx < GESTURE_ORDER.length) {
+    $('btn-add').disabled = false;
+    updateAddBtn();
+    renderGCards();
+  } else {
+    $('btn-add').disabled = true;
+    $('btn-add').textContent = 'All gestures trained';
+  }
+});
+
+$('btn-redo').addEventListener('click', () => {
+  S.testMode = false;
+  sendCmd({command:'set_mode', mode:'NEUTRAL'});
+  const gid = S.testGestureId;
+  S.sessionCounts[gid] = 0;
+  S.lockedGestures.delete(gid);
+  sendCmd({command:'clear_gesture', gesture_id: gid});
+  $('step-test').classList.add('locked');
+  $('test-box').textContent = 'Waiting for gesture lock-in...';
+  $('btn-add').disabled = false;
+  updateAddBtn();
+  renderGCards();
+  setAgenda(gid, 'pending');
+  setAgenda('test_' + gid, 'pending');
+  renderAgenda();
+});
+
+/* ════════════════════════════════════════════
+   LAUNCH
+════════════════════════════════════════════ */
+$('btn-launch').addEventListener('click', () => {
+  sendCmd({command:'train'});
+  $('btn-launch').textContent = 'Training...';
+  $('btn-launch').disabled = true;
+});
+
+/* ════════════════════════════════════════════
+   DATA SCREEN
+════════════════════════════════════════════ */
+document.querySelectorAll('.data-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.data-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.data-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    $('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'viz') renderViz();
+  });
+});
+
+function renderDataScreen() {
+  renderBpDisplay();
+  renderGestureList();
+  document.querySelectorAll('.data-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+  document.querySelectorAll('.data-panel').forEach((p,i) => p.classList.toggle('active', i===0));
+}
+
+function renderBpDisplay() {
+  const allParts = ['head','left_hand','right_hand'];
+  const labels   = {head:'Head', left_hand:'Left Hand', right_hand:'Right Hand'};
+  $('bp-display').innerHTML = allParts.map(p => {
+    const active = S.bodyParts.includes(p);
+    return `<div class="bp-chip ${active ? '' : 'inactive'}">
+      <div class="bp-chip-dot"></div>
+      <span>${labels[p]}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderGestureList() {
+  const el = $('gesture-list');
+  if (S.lockedGestures.size === 0) {
+    el.innerHTML = '<p style="font-size:0.84rem;color:rgba(28,28,30,0.4);padding:12px 0;">No trained gestures yet. Complete the training flow first.</p>';
+    return;
+  }
+  el.innerHTML = GESTURE_ORDER.map(gid => {
+    if (!S.lockedGestures.has(gid)) return '';
+    const phrase  = GESTURE_PHRASE[gid];
+    const deleted = S.deletedGestures.has(gid);
+    if (deleted) return '';
+    return `<div class="gesture-row" id="gr-${gid}">
+      <span class="gr-name">${GESTURE_LABEL[gid]}</span>
+      <span class="gr-status">Trained</span>
+      <div class="gr-phrase-wrap">
+        <input class="gr-phrase" id="phrase-${gid}" value="${phrase}" readonly/>
       </div>
-      <div class="gesture-tile-status" id="tileStatus_${id}">—</div>
-    </div>
-  `).join("");
-
-  updateTrainButton();
+      <div class="gr-actions">
+        <button class="gr-edit-btn" data-gid="${gid}" onclick="editPhrase('${gid}')">Edit</button>
+        <button class="gr-save-btn" id="save-${gid}" data-gid="${gid}" onclick="savePhrase('${gid}')">Save</button>
+        <button class="gr-delete-btn" data-gid="${gid}" onclick="deleteGesture('${gid}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
 }
 
-// ══════════════════════════════════════════════
-// WEBSOCKET
-// ══════════════════════════════════════════════
+window.editPhrase = (gid) => {
+  const inp  = $('phrase-' + gid);
+  const save = $('save-' + gid);
+  inp.readOnly = false;
+  inp.focus();
+  inp.select();
+  save.classList.add('visible');
+};
+
+window.savePhrase = (gid) => {
+  const inp   = $('phrase-' + gid);
+  const phrase = inp.value.trim();
+  if (!phrase) return;
+  inp.readOnly = true;
+  $('save-' + gid).classList.remove('visible');
+  GESTURE_PHRASE[gid] = phrase;
+  sendCmd({command:'set_phrase', gesture_id: gid, phrase});
+};
+
+window.deleteGesture = (gid) => {
+  if (!confirm(`Delete gesture "${GESTURE_LABEL[gid]}"? This cannot be undone.`)) return;
+  sendCmd({command:'clear_gesture', gesture_id: gid});
+  S.lockedGestures.delete(gid);
+  S.deletedGestures.add(gid);
+  S.isInference = false;
+  const row = $('gr-' + gid);
+  if (row) row.remove();
+  $('retrain-notice').classList.add('visible');
+  renderViz();
+};
+
+function renderViz() {
+  const allParts = ['head','left_hand','right_hand'];
+  allParts.forEach(p => {
+    const el = $('region-' + p);
+    if (!el) return;
+    const hasGesture = S.bodyParts.includes(p) && hasGestureForPart(p);
+    el.classList.toggle('has-gestures', hasGesture);
+  });
+  hideRegionCard();
+}
+
+function hasGestureForPart() {
+  return GESTURE_ORDER.some(g => S.lockedGestures.has(g) && !S.deletedGestures.has(g));
+}
+
+function showRegionCard(part) {
+  const labels = {head:'Head',left_hand:'Left Hand',right_hand:'Right Hand'};
+  $('region-card-title').textContent = labels[part] || part;
+  const gestures = GESTURE_ORDER.filter(g =>
+    S.lockedGestures.has(g) && !S.deletedGestures.has(g)
+  );
+  if (!gestures.length) {
+    $('region-gesture-list').innerHTML = '<p style="font-size:0.78rem;color:rgba(28,28,30,0.4);">No trained gestures for this region.</p>';
+  } else {
+    $('region-gesture-list').innerHTML = gestures.map(g => `
+      <div class="rg-item">
+        <div class="rg-item-dot"></div>
+        <span class="rg-item-name">${GESTURE_LABEL[g]}</span>
+        <span class="rg-item-phrase">"${GESTURE_PHRASE[g]}"</span>
+      </div>
+    `).join('');
+  }
+  $('region-card').classList.add('visible');
+  $('viz-empty').style.display = 'none';
+}
+
+function hideRegionCard() {
+  $('region-card').classList.remove('visible');
+  $('viz-empty').style.display = '';
+}
+
+document.querySelectorAll('.body-region').forEach(el => {
+  el.addEventListener('mouseenter', () => {
+    if (el.classList.contains('has-gestures')) showRegionCard(el.dataset.part);
+  });
+  el.addEventListener('mouseleave', hideRegionCard);
+  el.addEventListener('click', () => {
+    if (el.classList.contains('has-gestures')) showRegionCard(el.dataset.part);
+  });
+});
+
+/* ════════════════════════════════════════════
+   WEBSOCKET
+════════════════════════════════════════════ */
+let socket = null;
 
 function connectWS() {
-  const proto = location.protocol === "https:" ? "wss" : "ws";
+  if (socket && socket.readyState <= 1) return;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
   socket = new WebSocket(`${proto}://${location.host}/ws`);
-  socket.binaryType = "blob";
+  socket.binaryType = 'blob';
 
   socket.onopen = () => {
-    wsDot.classList.add("connected");
-    wsLabel.textContent = "CONNECTED";
-    log("Connected", "ok");
-    sendCmd({ command: "get_status" });
+    $('ws-dot').classList.add('on');
+    $('ws-text').textContent = 'CONNECTED';
+    sendCmd({command:'get_status'});
   };
   socket.onclose = () => {
-    wsDot.classList.remove("connected");
-    wsLabel.textContent = "DISCONNECTED";
+    $('ws-dot').classList.remove('on');
+    $('ws-text').textContent = 'DISCONNECTED';
     setTimeout(connectWS, 2000);
   };
-  socket.onerror = () => log("WebSocket error", "warn");
-  socket.onmessage = (evt) => {
-    if (evt.data instanceof Blob) { playBlob(evt.data); return; }
+  socket.onerror = () => {};
+  socket.onmessage = evt => {
+    if (evt.data instanceof Blob) { handleAudioBlob(evt.data); return; }
     try { handleMsg(JSON.parse(evt.data)); } catch {}
   };
 }
@@ -1040,212 +1852,276 @@ function connectWS() {
 function sendCmd(obj) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(obj));
 }
+
 function sendFrame(face, hands) {
-  if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({ face, hands }));
+  if (socket?.readyState !== WebSocket.OPEN) return;
+  const f = S.bodyParts.includes('head') ? face : null;
+  const h = hands.filter(hd => {
+    if (hd.handedness === 'Left'  && !S.bodyParts.includes('left_hand'))  return false;
+    if (hd.handedness === 'Right' && !S.bodyParts.includes('right_hand')) return false;
+    return true;
+  });
+  socket.send(JSON.stringify({face: f, hands: h}));
 }
 
-// ══════════════════════════════════════════════
-// MESSAGE HANDLER
-// ══════════════════════════════════════════════
-
+/* ════════════════════════════════════════════
+   MESSAGE HANDLER
+════════════════════════════════════════════ */
 function handleMsg(msg) {
-  if (msg.status === "mode_set") {
-    mode = msg.mode;
-    updateModeBadge();
+  if (msg.status === 'mode_set') updateModeBadge(msg.mode);
+
+  if (msg.status === 'collecting' && msg.label === 'neutral') {
+    onNeutralProgress(msg.count);
   }
 
-  if (msg.status === "collecting") {
-    if (msg.label === "neutral") {
-      wizardNeutralFrames = msg.count;
-      neutralFrames = msg.count;
-      updateNeutralUI();
-      if (wizardStep === 2) renderWizard();
+  if (msg.status === 'session_complete') onSessionComplete(msg);
+
+  if (msg.status === 'trained') {
+    if (msg.descriptions) Object.assign(gestureDescriptions, msg.descriptions);
+
+    if (S.testMode) {
+      updateModeBadge('INFERENCE');
+      $('test-box').textContent = `Demo mode active — perform "${GESTURE_LABEL[S.testGestureId]}" to trigger the voice.`;
     } else {
-      const sidx = msg.session_idx;
-      if (!gestureSessionData[msg.label]) gestureSessionData[msg.label] = Array(SESSIONS_REQUIRED).fill(0);
-      gestureSessionData[msg.label][sidx] = msg.count;
-      if (wizardStep === 3) renderWizard();
+      S.isInference = true;
+      updateModeBadge('INFERENCE');
+      $('btn-launch').textContent = 'Done — go to Home';
+      $('btn-launch').disabled = false;
+      $('btn-launch').onclick = () => navigate('landing');
+      setAgenda('launch','done');
     }
   }
 
-  if (msg.status === "session_complete") {
-    const { gesture_id, session_idx, sessions } = msg;
-    gestureSessionData[gesture_id] = sessions;
-    if (gestureRegistry[gesture_id]) gestureRegistry[gesture_id].sessions = sessions;
-    activeGestureId = null; activeSessionIdx = null;
-    isWizardRecording = false;
-    mode = "NEUTRAL"; updateModeBadge();
-    log(`Session ${session_idx + 1} done for ${gesture_id}`, "ok");
-
-    // Auto-advance wizard session
-    if (wizardStep === 3) {
-      const completedSessions = sessions.filter(s => s >= FRAMES_PER_SESSION).length;
-      if (completedSessions < SESSIONS_REQUIRED) {
-        wizardSessionIdx = completedSessions; // jump to next empty slot
-      }
-      renderWizard();
+  if (msg.status === 'train_failed') {
+    if (!S.testMode) {
+      $('btn-launch').textContent = 'Launch';
+      $('btn-launch').disabled = S.lockedGestures.size < 3;
+      alert('Training failed: ' + (msg.reason || 'unknown'));
+    } else {
+      $('test-box').textContent = 'Detection not ready yet — try Redo to re-record.';
     }
   }
 
-  if (msg.status === "trained") {
-    mode = "INFERENCE"; isInference = true;
-    updateModeBadge();
-    log(`Model ready — ${Object.keys(gestureRegistry).length} gestures`, "ok");
-  }
-  if (msg.status === "train_failed") log(`Training failed: ${msg.reason}`, "warn");
-
-  if (msg.status === "prediction") {
-    queueFill = msg.queue_fill;
-    const smoothed = smoothPredict(msg.label);
-    updatePredictionUI(smoothed);
+  if (msg.status === 'test_triggered') {
+    $('test-box').textContent = `Voice phrase: "${msg.phrase}" — confirm if detection is working.`;
   }
 
-  if (msg.status === "triggered") {
-    const reg = gestureRegistry[msg.gesture] || {};
-    log(`🔊 ${reg.phrase || msg.gesture}`, "trigger");
-    flash(reg.phrase || msg.gesture);
+  if (msg.status === 'prediction') {
+    const fill = msg.label !== 'neutral' ? (msg.queue_fill / QUEUE_LEN * 100) : 0;
+    const cf = $('conf-fill');
+    if (cf) cf.style.width = fill + '%';
   }
 
-  if (msg.status === "ok" && msg.mode) {
-    mode = msg.mode;
-    neutralFrames = msg.neutral_frames || 0;
-    updateNeutralUI(); updateModeBadge();
-    if (msg.phrases) {
-      Object.entries(msg.phrases).forEach(([id, phrase]) => {
-        if (!gestureRegistry[id]) gestureRegistry[id] = { name: id, phrase, icon: "👋", sessions: [] };
-        else gestureRegistry[id].phrase = phrase;
+  if (msg.status === 'triggered') {
+    const phrase = GESTURE_PHRASE[msg.gesture] || msg.gesture;
+
+    if (S.testMode) {
+      const desc = msg.description || gestureDescriptions[msg.gesture] || `${GESTURE_LABEL[msg.gesture] || msg.gesture} gesture`;
+      $('test-box').textContent = `Detected: ${desc}. Voice fired — perform again or confirm.`;
+    } else {
+      S.lastPhrase = phrase;
+      showNarration(phrase, msg.confidence);
+      fireFlash();
+    }
+  }
+
+  if (msg.status === 'ok' && msg.mode) {
+    updateModeBadge(msg.mode);
+    if (msg.model_ready) S.isInference = true;
+    if (msg.descriptions) Object.assign(gestureDescriptions, msg.descriptions);
+    if (msg.neutral_frames >= FRAMES_PER_SESSION && !S.neutralDone) {
+      S.neutralDone   = true;
+      S.neutralFrames = msg.neutral_frames;
+      $('btn-neutral').style.display = 'none';
+      $('neutral-ok').classList.remove('hidden');
+      $('neutral-fill').style.width = '100%';
+      $('neutral-prog').classList.remove('hidden');
+      $('step-gestures').classList.remove('locked');
+    }
+  }
+}
+
+/* ════════════════════════════════════════════
+   AUDIO + VISUALIZATION
+════════════════════════════════════════════ */
+async function handleAudioBlob(blob) {
+  const viz = $('audio-viz');
+  viz.classList.add('playing');
+
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+    const ab   = await blob.arrayBuffer();
+    const buf  = await audioCtx.decodeAudioData(ab);
+    const src  = audioCtx.createBufferSource();
+    analyser   = audioCtx.createAnalyser();
+    analyser.fftSize = 256;
+    freqData   = new Uint8Array(analyser.frequencyBinCount);
+
+    src.buffer = buf;
+    src.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    src.start();
+
+    const bars = viz.querySelectorAll('.viz-bar');
+    function driveViz() {
+      if (!analyser) return;
+      analyser.getByteFrequencyData(freqData);
+      bars.forEach((b, i) => {
+        const bin = Math.floor(i * freqData.length / bars.length);
+        const h   = Math.max(3, (freqData[bin] / 255) * 48);
+        b.style.height = h + 'px';
       });
+      vizAnimId = requestAnimationFrame(driveViz);
+    }
+    driveViz();
+
+    drawFreqCanvas();
+
+    src.onended = () => stopViz();
+
+  } catch (e) {
+    const url = URL.createObjectURL(blob);
+    const a   = new Audio(url);
+    a.play().catch(() => {});
+    a.onended = () => { stopViz(); URL.revokeObjectURL(url); };
+    setTimeout(stopViz, 4000);
+  }
+}
+
+function stopViz() {
+  const viz = $('audio-viz');
+  viz.classList.remove('playing');
+  viz.querySelectorAll('.viz-bar').forEach(b => { b.style.height = '3px'; });
+  if (vizAnimId) { cancelAnimationFrame(vizAnimId); vizAnimId = null; }
+  analyser  = null;
+  freqData  = null;
+  const fw = $('freq-wrap');
+  if (fw) fw.classList.remove('active');
+}
+
+function drawFreqCanvas() {
+  const wrap = $('freq-wrap');
+  const fc   = $('freq-canvas');
+  if (!wrap || !fc || !analyser) return;
+  wrap.classList.add('active');
+  fc.width  = wrap.offsetWidth  || 1;
+  fc.height = wrap.offsetHeight || 1;
+  const fCtx = fc.getContext('2d');
+
+  function frame() {
+    if (!analyser) return;
+    analyser.getByteFrequencyData(freqData);
+    fCtx.clearRect(0, 0, fc.width, fc.height);
+    const W = fc.width, H = fc.height;
+    const bw = W / freqData.length;
+    const grad = fCtx.createLinearGradient(0, H, 0, 0);
+    grad.addColorStop(0, 'rgba(255,154,0,0.0)');
+    grad.addColorStop(0.6, 'rgba(255,154,0,0.12)');
+    grad.addColorStop(1, 'rgba(255,154,0,0.22)');
+    fCtx.fillStyle = grad;
+    fCtx.beginPath();
+    fCtx.moveTo(0, H);
+    for (let i = 0; i < freqData.length; i++) {
+      const bh = (freqData[i] / 255) * H * 0.55;
+      fCtx.lineTo(i * bw, H - bh);
+    }
+    fCtx.lineTo(W, H);
+    fCtx.closePath();
+    fCtx.fill();
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+/* ════════════════════════════════════════════
+   TASK UI HELPERS
+════════════════════════════════════════════ */
+function showNarration(phrase, confidence) {
+  const el = $('narration-text');
+  el.textContent = phrase;
+  el.classList.remove('idle');
+  const cf = $('narration-conf');
+  if (cf) {
+    if (confidence !== undefined) {
+      cf.textContent = `${Math.round(confidence * 100)}% confidence`;
+      cf.classList.remove('hidden');
+    } else {
+      cf.classList.add('hidden');
     }
   }
-  if (msg.error) log(msg.error, "warn");
 }
 
-// ── Smooth prediction ───────────────────────────────────────────────────
-function smoothPredict(raw) {
-  smoothQueue.push(raw);
-  if (smoothQueue.length > SMOOTH_WINDOW) smoothQueue.shift();
-  const counts = {};
-  for (const p of smoothQueue) counts[p] = (counts[p] || 0) + 1;
-  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+function fireFlash() {
+  const el = S.screen === 'task' ? $('task-flash') : $('train-flash');
+  if (!el) return;
+  el.classList.remove('fire');
+  void el.offsetWidth;
+  el.classList.add('fire');
 }
 
-// ══════════════════════════════════════════════
-// UI HELPERS
-// ══════════════════════════════════════════════
-
-function updateModeBadge() {
-  modeBadge.className = "mode-badge";
-  if (mode === "NEUTRAL") { modeBadge.textContent = "READY"; }
-  else if (mode.startsWith("TRAIN")) { modeBadge.classList.add("recording"); modeBadge.textContent = "RECORDING…"; }
-  else if (mode === "INFERENCE") { modeBadge.classList.add("inference"); modeBadge.textContent = "LISTENING"; }
+function updateModeBadge(mode) {
+  const mb = $('mode-badge');
+  if (!mb) return;
+  mb.className = 'mode-badge';
+  if (!mode || mode === 'NEUTRAL') { mb.textContent = 'READY'; }
+  else if (mode.startsWith('TRAIN')) { mb.classList.add('recording'); mb.textContent = 'RECORDING'; }
+  else if (mode === 'INFERENCE')     { mb.classList.add('inference');  mb.textContent = 'LISTENING'; }
 }
 
-function updateNeutralUI() {
-  const pct = Math.min(neutralFrames / FRAMES_PER_SESSION * 100, 100);
-  neutralBar.style.width = pct + "%";
-  neutralCount.textContent = `${neutralFrames} / ${FRAMES_PER_SESSION} frames`;
-}
-
-function updatePredictionUI(label) {
-  const isNeutral = label === "neutral";
-  const fill = queueFill / QUEUE_LEN;
-  confBar.style.width = isNeutral ? "0%" : (fill * 100) + "%";
-
-  // Highlight active tile
-  document.querySelectorAll(".gesture-tile").forEach(t => t.classList.remove("active-pred"));
-  document.querySelectorAll(".gesture-tile-status").forEach(s => s.textContent = "—");
-  if (!isNeutral) {
-    const tile = document.getElementById("tile_" + label);
-    const status = document.getElementById("tileStatus_" + label);
-    if (tile) tile.classList.add("active-pred");
-    if (status) status.textContent = `${Math.round(fill * 100)}%`;
-  }
-}
-
-function flash(phrase) {
-  triggerFlash.classList.add("fire");
-  setTimeout(() => triggerFlash.classList.remove("fire"), 400);
-  triggeredLbl.textContent = `🔊 "${phrase}"`;
-  triggeredLbl.classList.add("show");
-  clearTimeout(triggeredLbl._t);
-  triggeredLbl._t = setTimeout(() => triggeredLbl.classList.remove("show"), 3000);
-}
-
-function updateTrainButton() {
-  const hasNeutral = neutralFrames >= 20;
-  const hasGesture = Object.values(gestureSessionData).some(sessions => 
-    sessions.filter(s => s >= FRAMES_PER_SESSION).length >= MIN_SESSIONS
-  );
-  btnTrainGo.disabled = !(hasNeutral && hasGesture);
-}
-
-function log(msg, cls = "") {
-  const el = document.createElement("div");
-  el.className = "log-entry " + cls;
-  el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
-  logEl.prepend(el);
-  if (logEl.children.length > 50) logEl.lastChild.remove();
-}
-
-function playBlob(blob) {
-  const url = URL.createObjectURL(blob);
-  const a = new Audio(url);
-  a.play().catch(() => {});
-  a.onended = () => URL.revokeObjectURL(url);
-}
-
-// ══════════════════════════════════════════════
-// MEDIAPIPE
-// ══════════════════════════════════════════════
-
+/* ════════════════════════════════════════════
+   MEDIAPIPE
+════════════════════════════════════════════ */
 async function initMediaPipe() {
   const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
   );
   [faceLandmarker, handLandmarker] = await Promise.all([
     FaceLandmarker.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task",
-        delegate: "GPU",
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+        delegate: 'GPU',
       },
-      runningMode: "VIDEO", numFaces: 1,
+      runningMode: 'VIDEO', numFaces: 1,
     }),
     HandLandmarker.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-        delegate: "GPU",
+        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task',
+        delegate: 'GPU',
       },
-      runningMode: "VIDEO", numHands: 2,
+      runningMode: 'VIDEO', numHands: 2,
+      minHandDetectionConfidence: 0.65,
+      minHandPresenceScore: 0.65,
+      minTrackingConfidence: 0.6,
     }),
   ]);
-  log("Camera & tracking ready", "ok");
 }
 
 async function startWebcam() {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+      video: { width:{ideal:1280}, height:{ideal:720}, facingMode:'user' },
     });
     video.srcObject = stream;
     await new Promise(r => (video.onloadedmetadata = r));
     await video.play();
-    log("Camera on", "ok");
-  } catch (e) { log("Camera error: " + e.message, "warn"); }
+  } catch (e) { console.warn('Camera error:', e.message); }
 }
 
 function filterFace(raw) {
   const out = {};
-  for (const [key, idx] of Object.entries(FACE_IDX)) {
+  for (const [k, idx] of Object.entries(FACE_IDX)) {
     if (!raw[idx]) return null;
-    out[key] = [raw[idx].x, raw[idx].y];
+    out[k] = [raw[idx].x, raw[idx].y];
   }
   return out;
 }
 function filterHand(raw, handedness) {
   const out = { handedness };
-  for (const [key, idx] of Object.entries(HAND_IDX)) {
+  for (const [k, idx] of Object.entries(HAND_IDX)) {
     if (!raw[idx]) return null;
-    out[key] = [raw[idx].x, raw[idx].y];
+    out[k] = [raw[idx].x, raw[idx].y];
   }
   return out;
 }
@@ -1253,7 +2129,7 @@ function filterHand(raw, handedness) {
 function renderLoop() {
   requestAnimationFrame(renderLoop);
   if (!faceLandmarker || !handLandmarker || video.readyState < 2) return;
-  if (canvas.width !== video.videoWidth) canvas.width = video.videoWidth;
+  if (canvas.width  !== video.videoWidth)  canvas.width  = video.videoWidth;
   if (canvas.height !== video.videoHeight) canvas.height = video.videoHeight;
 
   ctx.save();
@@ -1261,186 +2137,94 @@ function renderLoop() {
   ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
   ctx.restore();
 
-  if (video.currentTime === lastVideoTime) return;
-  lastVideoTime = video.currentTime;
-  const ts = performance.now();
+  if (video.currentTime !== lastVideoTime) {
+    lastVideoTime = video.currentTime;
+    emaFrame++;
+    const ts = performance.now();
 
-  const faceResult = faceLandmarker.detectForVideo(video, ts);
-  const handResult = handLandmarker.detectForVideo(video, ts);
+    const faceRes = faceLandmarker.detectForVideo(video, ts);
+    const handRes = handLandmarker.detectForVideo(video, ts);
 
-  const drawUtils = new DrawingUtils(ctx);
-  ctx.save();
-  ctx.scale(-1, 1); ctx.translate(-canvas.width, 0);
+    if (faceRes.faceLandmarks?.length && S.bodyParts.includes('head')) {
+      const raw = faceRes.faceLandmarks[0];
+      if (!faceSmoothed) faceSmoothed = cloneLM(raw);
+      else               faceSmoothed = applyEMA(faceSmoothed, raw);
+    }
 
-  let filteredFace = null;
-  if (faceResult.faceLandmarks?.length) {
-    const raw = faceResult.faceLandmarks[0];
-    filteredFace = filterFace(raw);
-    drawUtils.drawConnectors(raw, FaceLandmarker.FACE_LANDMARKS_TESSELATION,
-      { color: "rgba(45,106,79,0.08)", lineWidth: 0.5 });
-    const keyPts = Object.values(FACE_IDX).map(i => raw[i]);
-    drawUtils.drawLandmarks(keyPts, { color: "#6fd4a0", radius: 3 });
+    const hc = handRes.landmarks?.length || 0;
+    for (let h = 0; h < hc; h++) {
+      const raw  = handRes.landmarks[h];
+      const side = handRes.handedness[h]?.[0]?.displayName || 'Right';
+      if (side === 'Left'  && !S.bodyParts.includes('left_hand'))  continue;
+      if (side === 'Right' && !S.bodyParts.includes('right_hand')) continue;
+      if (!handSmoothed[side]) handSmoothed[side] = cloneLM(raw);
+      else                     handSmoothed[side] = applyEMA(handSmoothed[side], raw);
+      handLastFrame[side] = emaFrame;
+    }
   }
 
+  const activeHands = [];
+  ['Left','Right'].forEach(side => {
+    if (!handSmoothed[side]) return;
+    const age = emaFrame - (handLastFrame[side] || 0);
+    const fresh = age === 0;
+    if (age < HAND_HOLD) activeHands.push({lm: handSmoothed[side], side, fresh});
+  });
+
+  let filteredFace  = null;
   const filteredHands = [];
-  const handCount = handResult.landmarks?.length || 0;
-  for (let h = 0; h < handCount; h++) {
-    const raw = handResult.landmarks[h];
-    const handedness = handResult.handedness[h]?.[0]?.displayName || "Right";
-    const color = handedness === "Left" ? "#e07a5f" : "#3d6fa8";
-    const conn  = handedness === "Left" ? "rgba(224,122,95,0.3)" : "rgba(61,111,168,0.3)";
-    drawUtils.drawConnectors(raw, HandLandmarker.HAND_CONNECTIONS, { color: conn, lineWidth: 2 });
-    drawUtils.drawLandmarks(raw, { color, radius: 4, lineWidth: 1 });
-    const filtered = filterHand(raw, handedness);
-    if (filtered) filteredHands.push(filtered);
+
+  if (S.showLandmarks) {
+    const dUtils = new DrawingUtils(ctx);
+    ctx.save();
+    ctx.scale(-1, 1); ctx.translate(-canvas.width, 0);
+
+    if (faceSmoothed && S.bodyParts.includes('head')) {
+      filteredFace = filterFace(faceSmoothed);
+      dUtils.drawConnectors(faceSmoothed, FaceLandmarker.FACE_LANDMARKS_TESSELATION,
+        {color:'rgba(45,106,79,0.07)', lineWidth:0.5});
+      dUtils.drawLandmarks(Object.values(FACE_IDX).map(i => faceSmoothed[i]),
+        {color:'#6fd4a0', radius:3});
+    }
+
+    for (const {lm, side, fresh} of activeHands) {
+      const color = side === 'Left' ? '#e07a5f' : '#3d6fa8';
+      const conn  = side === 'Left' ? 'rgba(224,122,95,0.3)' : 'rgba(61,111,168,0.3)';
+      ctx.globalAlpha = fresh ? 1.0 : 0.6;
+      dUtils.drawConnectors(lm, HandLandmarker.HAND_CONNECTIONS, {color:conn, lineWidth:2});
+      dUtils.drawLandmarks(lm, {color, radius:4, lineWidth:1});
+      ctx.globalAlpha = 1.0;
+      if (fresh) {
+        const fh = filterHand(lm, side);
+        if (fh) filteredHands.push(fh);
+      }
+    }
+    ctx.restore();
+  } else {
+    if (faceSmoothed && S.bodyParts.includes('head')) filteredFace = filterFace(faceSmoothed);
+    for (const {lm, side, fresh} of activeHands) {
+      if (!fresh) continue;
+      const fh = filterHand(lm, side);
+      if (fh) filteredHands.push(fh);
+    }
   }
-  ctx.restore();
 
   if (filteredFace || filteredHands.length > 0) sendFrame(filteredFace, filteredHands);
 }
 
-// ══════════════════════════════════════════════
-// APP BUTTONS
-// ══════════════════════════════════════════════
-
-document.querySelectorAll(".sidebar-tab").forEach(tab => {
-  tab.addEventListener("click", () => {
-    document.querySelectorAll(".sidebar-tab").forEach(t => t.classList.remove("active"));
-    document.querySelectorAll(".sidebar-panel").forEach(p => p.classList.remove("active"));
-    tab.classList.add("active");
-    document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
-  });
+/* ════════════════════════════════════════════
+   BOOT
+════════════════════════════════════════════ */
+document.querySelectorAll('#bp-options .bp-toggle').forEach(t => {
+  const inp = t.querySelector('input');
+  const sel = S.bodyParts.includes(t.dataset.part);
+  inp.checked = sel;
+  t.classList.toggle('sel', sel);
 });
 
-btnTrainGo.addEventListener("click", () => {
-  sendCmd({ command: "train" });
-  log("Training model…");
-});
-
-document.getElementById("btnAddMore").addEventListener("click", () => {
-  document.querySelectorAll(".sidebar-tab").forEach(t => t.classList.remove("active"));
-  document.querySelectorAll(".sidebar-panel").forEach(p => p.classList.remove("active"));
-  document.querySelector('[data-tab="record"]').classList.add("active");
-  document.getElementById("panel-record").classList.add("active");
-});
-
-document.getElementById("btnReset").addEventListener("click", () => {
-  if (!confirm("Reset all gestures and start over?")) return;
-  sendCmd({ command: "clear_all" });
-  neutralFrames = 0; gestureSessionData = {}; gestureRegistry = {};
-  isInference = false; mode = "NEUTRAL";
-  updateModeBadge(); updateNeutralUI();
-  gestureTiles.innerHTML = "";
-  updateTrainButton();
-  log("Reset", "warn");
-});
-
-document.getElementById("btnSetupAgain").addEventListener("click", () => {
-  if (!confirm("Go back to setup? Current training data will be kept.")) return;
-  document.getElementById("wizard").classList.remove("hidden");
-  document.getElementById("app").classList.remove("visible");
-  wizardStep = 0;
-  renderWizard();
-});
-
-document.getElementById("btnNeutral").addEventListener("click", () => {
-  if (mode === "TRAIN_NEUTRAL") {
-    sendCmd({ command: "set_mode", mode: "NEUTRAL" });
-  } else {
-    sendCmd({ command: "set_mode", mode: "TRAIN_NEUTRAL" });
-  }
-});
-
-document.getElementById("btnAddCustom").addEventListener("click", () => {
-  const phrase = document.getElementById("customPhrase").value.trim();
-  const name   = document.getElementById("customName").value.trim() || "Custom Gesture";
-  if (!phrase) { alert("Please enter a phrase to speak."); return; }
-  const id = "custom_" + (gestureIdCounter++);
-  gestureRegistry[id] = { name, phrase, icon: "👋", sessions: Array(SESSIONS_REQUIRED).fill(0) };
-  gestureSessionData[id] = Array(SESSIONS_REQUIRED).fill(0);
-  sendCmd({ command: "set_phrase", gesture_id: id, phrase });
-  refreshGestureTiles();
-  addCustomRecCard(id);
-  document.getElementById("customPhrase").value = "";
-  document.getElementById("customName").value = "";
-  log(`Added gesture: ${name}`, "ok");
-});
-
-function addCustomRecCard(id) {
-  const reg = gestureRegistry[id];
-  const list = document.getElementById("customRecList");
-  const card = document.createElement("div");
-  card.className = "rec-card"; card.id = "crec_" + id;
-
-  const updateCard = () => {
-    const sessions = gestureSessionData[id] || Array(SESSIONS_REQUIRED).fill(0);
-    const sidx = sessions.findIndex(s => s < FRAMES_PER_SESSION);
-    const currentSidx = sidx === -1 ? SESSIONS_REQUIRED - 1 : sidx;
-    const currentCount = sessions[currentSidx] || 0;
-    const pct = Math.min(currentCount / FRAMES_PER_SESSION * 100, 100);
-    const done = currentCount >= FRAMES_PER_SESSION;
-    const recording = mode === "TRAIN_GESTURE" && activeGestureId === id;
-
-    card.innerHTML = `
-      <div class="rec-card-label">${reg.icon} ${reg.name} — "${reg.phrase}"</div>
-      <div class="rec-progress">
-        ${Array.from({length: SESSIONS_REQUIRED}, (_, i) => `
-          <div class="rec-session-row">
-            <div class="rec-session-num">${i+1}</div>
-            <div class="rec-session-track">
-              <div class="rec-session-fill ${sessions[i] >= FRAMES_PER_SESSION ? 'done' : ''}" style="width:${Math.min(sessions[i]/FRAMES_PER_SESSION*100,100)}%"></div>
-            </div>
-            <button class="rec-session-btn ${recording && activeSessionIdx===i ? 'recording' : sessions[i]>=FRAMES_PER_SESSION ? 'done' : ''}" data-sidx="${i}">
-              ${recording && activeSessionIdx===i ? '■ stop' : sessions[i]>=FRAMES_PER_SESSION ? '✓ redo' : '⬤ rec'}
-            </button>
-          </div>
-        `).join("")}
-      </div>
-    `;
-    card.querySelectorAll(".rec-session-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const sidx = parseInt(btn.dataset.sidx);
-        const isRec = mode === "TRAIN_GESTURE" && activeGestureId === id && activeSessionIdx === sidx;
-        if (isRec) {
-          sendCmd({ command: "set_mode", mode: "NEUTRAL" });
-          activeGestureId = null; activeSessionIdx = null;
-        } else {
-          if (mode === "TRAIN_GESTURE") sendCmd({ command: "set_mode", mode: "NEUTRAL" });
-          activeGestureId = id; activeSessionIdx = sidx;
-          gestureSessionData[id][sidx] = 0;
-          sendCmd({ command: "clear_session", gesture_id: id, session_idx: sidx });
-          sendCmd({ command: "set_mode", mode: "TRAIN_GESTURE", gesture_id: id, session_idx: sidx });
-        }
-        updateCard();
-      });
-    });
-  };
-  updateCard();
-  list.appendChild(card);
-
-  // Re-render card on messages
-  const orig = handleMsg;
-  // Store reference so session updates re-render this card
-  card._update = updateCard;
-}
-
-// Patch handleMsg to update custom rec cards
-const _handleMsg = handleMsg;
-// We monkey-patch via the socket message callback — done above.
-// Instead, store card updates in a map:
-window._recCardUpdaters = {};
-document.getElementById("customRecList").addEventListener("sessionUpdate", e => {
-  const { id } = e.detail;
-  const card = document.getElementById("crec_" + id);
-  if (card?._update) card._update();
-});
-
-// ══════════════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════════════
-
-connectWS();
-renderWizard();
+renderAgenda();
+renderGCards();
+updateAddBtn();
 
 </script>
 </body>

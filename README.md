@@ -163,8 +163,8 @@ At train time, a binary mask is computed per gesture that identifies which body 
 ## File Structure
 
 ```
-gesture_tts/
-├── main.py            # FastAPI backend — feature engineering, SVM, WebSocket, TTS
+cerebalpalsyrecognition/
+├── main.py            
 ├── requirements.txt
 ├── .env               # Your API keys (not committed)
 └── static/

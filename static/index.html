@@ -224,6 +224,195 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .name-edit-link:hover { color: var(--orange); }
 
 /* ════════════════════════════════════════════════
+   ML DIAGRAM BUTTON + OVERLAY
+════════════════════════════════════════════════ */
+.ml-tab-btn {
+  position: absolute; top: 20px; right: 20px; z-index: 10;
+  padding: 8px 18px;
+  border-radius: var(--r-pill);
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em;
+  color: var(--charcoal); text-transform: uppercase;
+  box-shadow: var(--shadow-lift);
+  transition: all 0.2s;
+}
+.ml-tab-btn:hover {
+  background: rgba(255,154,0,0.12);
+  border-color: var(--orange);
+  color: var(--orange);
+  transform: translateY(-1px);
+}
+
+/* Full-screen overlay */
+.ml-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(18,14,10,0.82);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+.ml-overlay.open {
+  opacity: 1; pointer-events: all;
+}
+.ml-overlay-inner {
+  position: relative;
+  width: min(960px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.ml-overlay-inner::-webkit-scrollbar { display: none; }
+
+.ml-close {
+  position: absolute; top: -8px; right: -8px; z-index: 10;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(28,28,30,0.7); color: rgba(255,255,255,0.7);
+  font-size: 1.1rem; display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.ml-close:hover { background: rgba(255,154,0,0.3); color: white; }
+
+/* Diagram canvas */
+.ml-diagram {
+  padding: 40px 32px 48px;
+  background: rgba(22,18,12,0.92);
+  border: 1px solid rgba(255,154,0,0.18);
+  border-radius: 32px;
+  box-shadow: 0 0 80px rgba(255,154,0,0.08), 0 24px 64px rgba(0,0,0,0.5);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.ml-title {
+  text-align: center; margin-bottom: 36px;
+  font-size: 0.65rem; font-weight: 700; letter-spacing: 0.22em;
+  text-transform: uppercase; color: rgba(255,154,0,0.6);
+}
+
+/* Pipeline rows */
+.ml-row {
+  display: flex; align-items: flex-start; justify-content: center;
+  gap: 10px; margin-bottom: 0;
+}
+.ml-row + .ml-row { margin-top: 0; }
+
+/* Connector arrows between rows */
+.ml-arrow-row {
+  display: flex; justify-content: center; align-items: center;
+  height: 32px; position: relative;
+}
+.ml-arrow-row svg {
+  height: 32px; overflow: visible;
+}
+
+/* Individual node */
+.ml-node {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 7px; cursor: default;
+  animation: nodeIn 0.5s ease both;
+}
+@keyframes nodeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ml-node:nth-child(1) { animation-delay: 0.05s; }
+.ml-node:nth-child(2) { animation-delay: 0.10s; }
+.ml-node:nth-child(3) { animation-delay: 0.15s; }
+.ml-node:nth-child(4) { animation-delay: 0.20s; }
+.ml-node:nth-child(5) { animation-delay: 0.25s; }
+
+.ml-box {
+  border-radius: 14px; padding: 10px 16px;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.07em;
+  text-align: center; line-height: 1.4;
+  position: relative; overflow: hidden;
+  min-width: 96px;
+  transition: transform 0.18s, box-shadow 0.18s;
+}
+.ml-box::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.07) 0%, transparent 60%);
+  pointer-events: none;
+}
+.ml-box:hover { transform: translateY(-2px) scale(1.03); }
+
+.ml-label {
+  font-size: 0.55rem; font-weight: 600; letter-spacing: 0.10em;
+  text-transform: uppercase; opacity: 0.45; color: rgba(255,255,255,0.7);
+  text-align: center;
+}
+
+/* Color themes per layer */
+.ml-box.input {
+  background: rgba(60,80,110,0.55);
+  border: 1px solid rgba(100,160,255,0.35);
+  color: rgba(180,210,255,0.95);
+  box-shadow: 0 0 18px rgba(80,130,255,0.15);
+}
+.ml-box.extract {
+  background: rgba(80,55,110,0.55);
+  border: 1px solid rgba(180,120,255,0.35);
+  color: rgba(210,180,255,0.95);
+  box-shadow: 0 0 18px rgba(150,80,255,0.12);
+}
+.ml-box.process {
+  background: rgba(40,80,60,0.60);
+  border: 1px solid rgba(80,200,130,0.35);
+  color: rgba(160,240,190,0.95);
+  box-shadow: 0 0 18px rgba(60,180,100,0.12);
+}
+.ml-box.model {
+  background: rgba(130,60,20,0.60);
+  border: 1.5px solid rgba(255,154,0,0.55);
+  color: rgba(255,210,120,0.98);
+  box-shadow: 0 0 28px rgba(255,154,0,0.22);
+}
+.ml-box.output {
+  background: rgba(160,40,60,0.50);
+  border: 1px solid rgba(255,100,120,0.40);
+  color: rgba(255,180,190,0.95);
+  box-shadow: 0 0 18px rgba(255,80,100,0.12);
+}
+.ml-box.neutral {
+  background: rgba(40,40,50,0.70);
+  border: 1px solid rgba(160,160,180,0.25);
+  color: rgba(180,180,200,0.80);
+}
+
+/* Merge funnel: wide SVG connector showing many-to-one */
+.ml-funnel {
+  width: 100%; height: 44px; display: block; overflow: visible;
+}
+
+/* Sub-label detail chips */
+.ml-detail {
+  font-size: 0.52rem; opacity: 0.55; letter-spacing: 0.04em;
+  color: rgba(255,255,255,0.6); text-align: center; margin-top: 2px;
+  max-width: 100px; line-height: 1.3;
+}
+
+/* Horizontal connector line between sibling nodes */
+.ml-hline {
+  flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,154,0,0.25), transparent);
+  margin-top: 28px; /* align with center of boxes */
+  max-width: 24px;
+}
+
+/* Animated glow pulse on model node */
+.ml-box.model {
+  animation: nodeIn 0.5s ease both, modelPulse 3s ease-in-out 0.8s infinite;
+}
+@keyframes modelPulse {
+  0%, 100% { box-shadow: 0 0 28px rgba(255,154,0,0.22); }
+  50%       { box-shadow: 0 0 48px rgba(255,154,0,0.50), 0 0 80px rgba(255,154,0,0.15); }
+}
+
+/* ════════════════════════════════════════════════
    SCREEN 2: TRAIN
 ════════════════════════════════════════════════ */
 .topbar {
@@ -427,6 +616,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   letter-spacing: 0.1em; flex: 1;
 }
 .g-card-locked { font-size: 0.66rem; font-weight: 700; color: #22c55e; }
+.g-card-reset {
+  font-size: 0.65rem; font-weight: 600; letter-spacing: 0.06em;
+  padding: 2px 8px; border-radius: 6px;
+  border: 1px solid rgba(220,60,60,0.3);
+  background: rgba(220,60,60,0.06);
+  color: rgba(200,50,50,0.8);
+  cursor: pointer; transition: all 0.15s;
+}
+.g-card-reset:hover { background: rgba(220,60,60,0.15); color: rgb(200,50,50); }
 
 .sess-dots { display: flex; gap: 5px; }
 .sess-dot {
@@ -920,6 +1118,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 </div>
 
 <div id="screen-landing" class="screen active">
+  <button class="ml-tab-btn" id="btn-ml-diagram">ML Pipeline</button>
   <div class="aura-rings">
     <div class="aura-ring"></div>
     <div class="aura-ring"></div>
@@ -932,17 +1131,15 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <div class="landing-cards">
       <button class="action-card" id="btn-task">
         <div class="action-card-icon">TASK</div>
-        <span class="action-card-label">Do Task</span>
         <span class="action-card-sub">Start recognition</span>
       </button>
       <button class="action-card" id="btn-train">
         <div class="action-card-icon">TRAIN</div>
-        <span class="action-card-label">Train</span>
         <span class="action-card-sub">Record gestures</span>
       </button>
       <button class="action-card" id="btn-data">
         <div class="action-card-icon">DATA</div>
-        <span class="action-card-label">Data</span>
+
         <span class="action-card-sub">Manage gestures</span>
       </button>
     </div>
@@ -992,6 +1189,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
           </div>
           <button class="btn btn-primary btn-sm" id="btn-neutral">Record Neutral</button>
           <span class="status-ok hidden" id="neutral-ok">Baseline captured</span>
+          <button class="btn btn-ghost btn-sm hidden" id="btn-neutral-reset">Re-record</button>
         </div>
       </div>
 
@@ -1002,7 +1200,10 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         <div class="step-body">
           <h4>Add Gestures</h4>
           <div class="g-cards" id="g-cards"></div>
-          <button class="btn btn-primary btn-sm" id="btn-add">Train YES</button>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <button class="btn btn-primary btn-sm" id="btn-add">Train YES</button>
+            <button class="btn btn-glass btn-sm" id="btn-custom-gesture">+ Custom</button>
+          </div>
         </div>
       </div>
 
@@ -1201,6 +1402,180 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   </div>
 </div>
 
+<!-- ── ML Pipeline Diagram Overlay ─────────────────────────────── -->
+<div class="ml-overlay" id="ml-overlay">
+  <div class="ml-overlay-inner">
+    <button class="ml-close" id="ml-close">✕</button>
+    <div class="ml-diagram">
+      <div class="ml-title">Gesture Recognition · ML Pipeline</div>
+
+      <!-- ROW 1: Raw inputs -->
+      <div class="ml-row">
+        <div class="ml-node">
+          <div class="ml-box input">📷 Camera</div>
+          <div class="ml-label">30fps video</div>
+        </div>
+      </div>
+
+      <!-- Arrow down -->
+      <div class="ml-arrow-row">
+        <svg width="2" height="32"><line x1="1" y1="0" x2="1" y2="32" stroke="rgba(255,154,0,0.35)" stroke-width="1.5" stroke-dasharray="4 3"/></svg>
+      </div>
+
+      <!-- ROW 2: MediaPipe detectors -->
+      <div class="ml-row" style="gap:20px;">
+        <div class="ml-node">
+          <div class="ml-box extract">😶 FaceLandmarker</div>
+          <div class="ml-label">478 face points</div>
+          <div class="ml-detail">mouth · eyes · brows · jaw</div>
+        </div>
+        <div class="ml-hline"></div>
+        <div class="ml-node">
+          <div class="ml-box extract">🖐 HandLandmarker</div>
+          <div class="ml-label">21 pts × 2 hands</div>
+          <div class="ml-detail">wrist · mcp · pip · tip</div>
+        </div>
+      </div>
+
+      <!-- Funnel arrow converging to feature extraction -->
+      <div class="ml-arrow-row" style="width:100%;">
+        <svg class="ml-funnel" viewBox="0 0 600 44" preserveAspectRatio="none">
+          <path d="M180 0 Q300 44 300 44" fill="none" stroke="rgba(255,154,0,0.30)" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <path d="M420 0 Q300 44 300 44" fill="none" stroke="rgba(255,154,0,0.30)" stroke-width="1.5" stroke-dasharray="5 3"/>
+          <circle cx="300" cy="44" r="3" fill="rgba(255,154,0,0.6)"/>
+        </svg>
+      </div>
+
+      <!-- ROW 3: Feature engineering -->
+      <div class="ml-row" style="gap:12px; flex-wrap:wrap;">
+        <div class="ml-node">
+          <div class="ml-box process" style="min-width:82px;">Mouth Open</div>
+          <div class="ml-detail">lip Δy / face-h</div>
+        </div>
+        <div class="ml-node">
+          <div class="ml-box process" style="min-width:70px;">Eye EAR</div>
+          <div class="ml-detail">h/w per eye</div>
+        </div>
+        <div class="ml-node">
+          <div class="ml-box process" style="min-width:76px;">Brow Raise</div>
+          <div class="ml-detail">3-tier bilateral</div>
+        </div>
+        <div class="ml-node">
+          <div class="ml-box process" style="min-width:70px;">Finger Lift</div>
+          <div class="ml-detail">(mcp_y−tip_y+z) / palm</div>
+        </div>
+        <div class="ml-node">
+          <div class="ml-box process" style="min-width:70px;">Finger Curl</div>
+          <div class="ml-detail">tip−mcp / palm-w</div>
+        </div>
+      </div>
+
+      <!-- Funnel to vector -->
+      <div class="ml-arrow-row" style="width:100%;">
+        <svg class="ml-funnel" viewBox="0 0 700 44" preserveAspectRatio="none">
+          <path d="M90 0 Q350 44 350 44"  fill="none" stroke="rgba(80,200,130,0.25)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M210 0 Q350 44 350 44" fill="none" stroke="rgba(80,200,130,0.25)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M350 0 Q350 44 350 44" fill="none" stroke="rgba(80,200,130,0.35)" stroke-width="1.5"/>
+          <path d="M490 0 Q350 44 350 44" fill="none" stroke="rgba(80,200,130,0.25)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path d="M610 0 Q350 44 350 44" fill="none" stroke="rgba(80,200,130,0.25)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <circle cx="350" cy="44" r="3" fill="rgba(80,200,130,0.7)"/>
+        </svg>
+      </div>
+
+      <!-- ROW 4: Vector + normalization -->
+      <div class="ml-row" style="gap:16px; align-items:center;">
+        <div class="ml-node">
+          <div class="ml-box process" style="min-width:110px;">34-D Vector</div>
+          <div class="ml-detail">8 face + 12L + 12R + 2 flags</div>
+        </div>
+        <div style="color:rgba(255,154,0,0.4);font-size:1.1rem;margin-top:-12px;">→</div>
+        <div class="ml-node">
+          <div class="ml-box neutral" style="min-width:110px;">− Neutral Mean</div>
+          <div class="ml-detail">personal baseline subtracted</div>
+        </div>
+        <div style="color:rgba(255,154,0,0.4);font-size:1.1rem;margin-top:-12px;">→</div>
+        <div class="ml-node">
+          <div class="ml-box neutral" style="min-width:110px;">Region Mask</div>
+          <div class="ml-detail">zero irrelevant body parts</div>
+        </div>
+        <div style="color:rgba(255,154,0,0.4);font-size:1.1rem;margin-top:-12px;">→</div>
+        <div class="ml-node">
+          <div class="ml-box neutral" style="min-width:88px;">StandardScaler</div>
+          <div class="ml-detail">z-score per feature</div>
+        </div>
+      </div>
+
+      <!-- Arrow down -->
+      <div class="ml-arrow-row">
+        <svg width="2" height="32"><line x1="1" y1="0" x2="1" y2="32" stroke="rgba(255,154,0,0.45)" stroke-width="2" stroke-dasharray="4 3"/></svg>
+      </div>
+
+      <!-- ROW 5: SVM classifier -->
+      <div class="ml-row">
+        <div class="ml-node">
+          <div class="ml-box model" style="min-width:180px; padding:14px 24px;">
+            <div style="font-size:0.82rem; margin-bottom:4px;">SVM Classifier</div>
+            <div style="font-size:0.58rem; opacity:0.7; font-weight:400; letter-spacing:0.05em;">RBF kernel · C=5 · balanced weights</div>
+          </div>
+          <div class="ml-detail" style="max-width:200px;">Learns decision boundaries between gestures + neutral. Outputs probability per class.</div>
+        </div>
+      </div>
+
+      <!-- Arrow down -->
+      <div class="ml-arrow-row">
+        <svg width="2" height="32"><line x1="1" y1="0" x2="1" y2="32" stroke="rgba(255,154,0,0.45)" stroke-width="2" stroke-dasharray="4 3"/></svg>
+      </div>
+
+      <!-- ROW 6: Temporal smoothing -->
+      <div class="ml-row" style="gap:16px; align-items:center;">
+        <div class="ml-node">
+          <div class="ml-box neutral" style="min-width:100px;">KNN Gate</div>
+          <div class="ml-detail">skip accumulation while neutral</div>
+        </div>
+        <div style="color:rgba(255,154,0,0.4);font-size:1.1rem;margin-top:-12px;">→</div>
+        <div class="ml-node">
+          <div class="ml-box neutral" style="min-width:100px;">Debounce ×20</div>
+          <div class="ml-detail">20 consistent frames needed</div>
+        </div>
+        <div style="color:rgba(255,154,0,0.4);font-size:1.1rem;margin-top:-12px;">→</div>
+        <div class="ml-node">
+          <div class="ml-box neutral" style="min-width:100px;">Prob Window</div>
+          <div class="ml-detail">avg proba over 10 frames</div>
+        </div>
+        <div style="color:rgba(255,154,0,0.4);font-size:1.1rem;margin-top:-12px;">→</div>
+        <div class="ml-node">
+          <div class="ml-box neutral" style="min-width:100px;">Conf ≥ 65%</div>
+          <div class="ml-detail">threshold gate to fire</div>
+        </div>
+      </div>
+
+      <!-- Arrow down -->
+      <div class="ml-arrow-row">
+        <svg width="2" height="32"><line x1="1" y1="0" x2="1" y2="32" stroke="rgba(255,100,120,0.5)" stroke-width="2"/></svg>
+      </div>
+
+      <!-- ROW 7: Output -->
+      <div class="ml-row" style="gap:16px;">
+        <div class="ml-node">
+          <div class="ml-box output" style="min-width:110px;">🔊 ElevenLabs TTS</div>
+          <div class="ml-detail">gesture phrase spoken aloud</div>
+        </div>
+        <div class="ml-hline" style="background:linear-gradient(90deg,transparent,rgba(255,100,120,0.2),transparent);"></div>
+        <div class="ml-node">
+          <div class="ml-box output" style="min-width:110px;">📋 Description</div>
+          <div class="ml-detail">dominant movement labeled</div>
+        </div>
+        <div class="ml-hline" style="background:linear-gradient(90deg,transparent,rgba(255,100,120,0.2),transparent);"></div>
+        <div class="ml-node">
+          <div class="ml-box output" style="min-width:110px;">🔒 2.5s Cooldown</div>
+          <div class="ml-detail">latch + holdoff prevents bounce</div>
+        </div>
+      </div>
+
+    </div><!-- .ml-diagram -->
+  </div><!-- .ml-overlay-inner -->
+</div><!-- .ml-overlay -->
+
 <script type="module">
 import {
   FaceLandmarker, HandLandmarker, FilesetResolver, DrawingUtils,
@@ -1211,9 +1586,14 @@ const FRAMES_PER_SESSION = 50;
 const QUEUE_LEN          = 20;
 
 const FACE_IDX = {
-  top_lip:13, bottom_lip:14, left_mouth:61, right_mouth:291,
-  left_eye_top:159, left_eye_bottom:145, right_eye_top:386, right_eye_bottom:374,
-  left_eyebrow:70, right_eyebrow:300,
+  top_lip:13, bottom_lip:14, jaw:152,
+  left_mouth:61, right_mouth:291,
+  left_eye_top:159, left_eye_bottom:145,
+  left_eye_outer:33, left_eye_inner:133,
+  right_eye_top:386, right_eye_bottom:374,
+  right_eye_inner:362, right_eye_outer:263,
+  left_eyebrow_outer:70,  left_eyebrow_peak:105,  left_eyebrow_inner:107,
+  right_eyebrow_outer:300, right_eyebrow_peak:334, right_eyebrow_inner:336,
 };
 const HAND_IDX = {
   wrist:0, thumb_mcp:2, thumb_tip:4,
@@ -1223,9 +1603,9 @@ const HAND_IDX = {
   pinky_mcp:17, pinky_tip:20,
 };
 
-const GESTURE_ORDER  = ['yes','no','help'];
-const GESTURE_LABEL  = { yes:'YES', no:'NO', help:'HELP' };
-const GESTURE_PHRASE = { yes:'Yes', no:'No', help:'Help me' };
+let GESTURE_ORDER  = ['yes','no','help'];
+let GESTURE_LABEL  = { yes:'YES', no:'NO', help:'HELP' };
+let GESTURE_PHRASE = { yes:'Yes', no:'No', help:'Help me' };
 
 /* ── State ────────────────────────────────────────────────────── */
 const S = {
@@ -1256,7 +1636,7 @@ const S = {
 };
 
 /* ── EMA Landmark Smoothing ───────────────────────────────────── */
-const EMA_A     = 0.08;  
+const EMA_A     = 0.30;
 const HAND_HOLD = 12;    
 const MAX_LM_JUMP = 0.022; 
 let faceSmoothed = null;
@@ -1445,19 +1825,18 @@ $('btn-light-ok').addEventListener('click', () => hideModal('modal-light'));
 /* ════════════════════════════════════════════
    AGENDA
 ════════════════════════════════════════════ */
-const AGENDA = [
-  {id:'neutral',  label:'Neutral'},
-  {id:'yes',       label:'YES x4'},
-  {id:'test_yes',  label:'Test YES'},
-  {id:'no',        label:'NO x4'},
-  {id:'test_no',   label:'Test NO'},
-  {id:'help',      label:'HELP x4'},
-  {id:'test_help', label:'Test HELP'},
-  {id:'launch',    label:'Launch'},
-];
+function buildAgenda() {
+  const items = [{id:'neutral', label:'Neutral'}];
+  for (const gid of GESTURE_ORDER) {
+    items.push({id: gid,          label: `${GESTURE_LABEL[gid]} x4`});
+    items.push({id: 'test_' + gid, label: `Test ${GESTURE_LABEL[gid]}`});
+  }
+  items.push({id:'launch', label:'Launch'});
+  return items;
+}
 
 function renderAgenda() {
-  $('agenda-row').innerHTML = AGENDA.map(a => {
+  $('agenda-row').innerHTML = buildAgenda().map(a => {
     const st = S.agendaStatus[a.id] || 'pending';
     return `<div class="a-item ${st}" id="a-${a.id}">
       <span class="a-dot"></span><span>${a.label}</span>
@@ -1484,15 +1863,38 @@ $('btn-neutral').addEventListener('click', () => {
   updateModeBadge('TRAIN_NEUTRAL');
 });
 
-function onNeutralProgress(count) {
+$('btn-neutral-reset').addEventListener('click', () => {
+  // Clear neutral data on the backend then re-record
+  sendCmd({command:'clear_all'});
+  S.neutralDone   = false;
+  S.neutralFrames = 0;
+  S.currentGestureIdx = 0;
+  Object.keys(S.sessionCounts).forEach(k => S.sessionCounts[k] = 0);
+  S.lockedGestures.clear();
+  // Reset UI
+  $('btn-neutral').disabled = false;
+  $('btn-neutral').style.display = '';
+  $('neutral-ok').classList.add('hidden');
+  $('neutral-fill').style.width = '0%';
+  $('neutral-prog').classList.add('hidden');
+  $('btn-neutral-reset').classList.add('hidden');
+  $('step-gestures').classList.add('locked');
+  setAgenda('neutral','');
+  renderAgenda();
+  renderGestureList();
+  updateModeBadge('NEUTRAL');
+});
+
+const NEUTRAL_FRAMES = 150;
+function onNeutralProgress(count, done) {
   S.neutralFrames = count;
-  const pct = Math.min(100, (count / FRAMES_PER_SESSION) * 100);
+  const pct = Math.min(100, (count / NEUTRAL_FRAMES) * 100);
   $('neutral-fill').style.width = pct + '%';
-  if (count >= FRAMES_PER_SESSION) {
+  if (done && !S.neutralDone) {
     S.neutralDone = true;
-    sendCmd({command:'set_mode', mode:'NEUTRAL'});
     $('btn-neutral').style.display = 'none';
     $('neutral-ok').classList.remove('hidden');
+    $('btn-neutral-reset').classList.remove('hidden');
     $('step-gestures').classList.remove('locked');
     setAgenda('neutral','done');
     renderAgenda();
@@ -1505,7 +1907,7 @@ function onNeutralProgress(count) {
 ════════════════════════════════════════════ */
 function renderGCards() {
   $('g-cards').innerHTML = GESTURE_ORDER.map((gid, i) => {
-    const count  = S.sessionCounts[gid];
+    const count  = S.sessionCounts[gid] || 0;
     const locked = S.lockedGestures.has(gid);
     const isCur  = i === S.currentGestureIdx;
     const cls    = locked ? 'locked-in' : isCur ? 'current' : '';
@@ -1516,13 +1918,73 @@ function renderGCards() {
       return `<div class="${c}"></div>`;
     }).join('');
     const lockedLabel = locked ? '<span class="g-card-locked">Locked</span>' : '';
-    return `<div class="g-card ${cls}">
-      <span class="g-card-name">${GESTURE_LABEL[gid]}</span>
+    const resetBtn = count > 0
+      ? `<button class="g-card-reset" onclick="resetGesture('${gid}')">Reset</button>`
+      : '';
+    return `<div class="g-card ${cls}" id="gc-${gid}">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <span class="g-card-name">${GESTURE_LABEL[gid]}</span>
+        ${resetBtn}
+      </div>
       <div class="sess-dots">${dots}</div>
       ${lockedLabel}
     </div>`;
   }).join('');
 }
+
+function resetGesture(gid) {
+  if (!confirm(`Reset "${GESTURE_LABEL[gid]}"? All recorded sessions will be cleared.`)) return;
+  sendCmd({command:'clear_gesture', gesture_id: gid});
+  S.sessionCounts[gid] = 0;
+  S.lockedGestures.delete(gid);
+  // If this gesture was already confirmed (past currentGestureIdx), rewind to it
+  const idx = GESTURE_ORDER.indexOf(gid);
+  if (idx !== -1 && idx < S.currentGestureIdx) {
+    S.currentGestureIdx = idx;
+  }
+  // If it was in test phase for this gesture, close test panel
+  if (S.testGestureId === gid) {
+    S.testMode = false;
+    S.testGestureId = null;
+    $('step-test').classList.add('locked');
+    $('test-box').textContent = 'Waiting for gesture lock-in...';
+    sendCmd({command:'set_mode', mode:'NEUTRAL'});
+  }
+  $('btn-add').disabled = false;
+  $('btn-launch').disabled = true;
+  setAgenda(gid, 'pending');
+  setAgenda('test_' + gid, 'pending');
+  renderAgenda();
+  renderGCards();
+  updateAddBtn();
+}
+
+$('btn-custom-gesture').addEventListener('click', () => {
+  const name = prompt('Gesture name (e.g. "water", "stop"):');
+  if (!name || !name.trim()) return;
+  const id = name.trim().toLowerCase().replace(/\s+/g, '_');
+  if (GESTURE_ORDER.includes(id)) {
+    alert(`"${id}" already exists.`); return;
+  }
+  const phrase = prompt(`Spoken phrase for "${id}" (e.g. "I need water"):`, name.trim());
+  if (!phrase || !phrase.trim()) return;
+
+  GESTURE_ORDER.push(id);
+  GESTURE_LABEL[id]  = id.toUpperCase().replace(/_/g, ' ');
+  GESTURE_PHRASE[id] = phrase.trim();
+  S.sessionCounts[id] = 0;
+
+  sendCmd({command:'set_phrase', gesture_id: id, phrase: phrase.trim()});
+
+  renderAgenda();
+  renderGCards();
+  // If all previous gestures are confirmed, point to the new one
+  if (S.currentGestureIdx >= GESTURE_ORDER.length - 1) {
+    S.currentGestureIdx = GESTURE_ORDER.length - 1;
+    $('btn-add').disabled = false;
+  }
+  updateAddBtn();
+});
 
 function updateAddBtn() {
   const gid   = GESTURE_ORDER[S.currentGestureIdx];
@@ -1641,7 +2103,7 @@ $('btn-confirm').addEventListener('click', () => {
   S.currentGestureIdx++;
   $('step-test').classList.add('locked');
   $('test-box').textContent = 'Waiting for gesture lock-in...';
-  if (S.lockedGestures.size >= 3) {
+  if (S.lockedGestures.size >= 1) {
     $('btn-launch').disabled = false;
     setAgenda('launch','active');
   }
@@ -1758,6 +2220,7 @@ window.savePhrase = (gid) => {
   sendCmd({command:'set_phrase', gesture_id: gid, phrase});
 };
 
+window.resetGesture = resetGesture;
 window.deleteGesture = (gid) => {
   if (!confirm(`Delete gesture "${GESTURE_LABEL[gid]}"? This cannot be undone.`)) return;
   sendCmd({command:'clear_gesture', gesture_id: gid});
@@ -1871,7 +2334,7 @@ function handleMsg(msg) {
   if (msg.status === 'mode_set') updateModeBadge(msg.mode);
 
   if (msg.status === 'collecting' && msg.label === 'neutral') {
-    onNeutralProgress(msg.count);
+    onNeutralProgress(msg.count, msg.done);
   }
 
   if (msg.status === 'session_complete') onSessionComplete(msg);
@@ -1929,11 +2392,12 @@ function handleMsg(msg) {
     updateModeBadge(msg.mode);
     if (msg.model_ready) S.isInference = true;
     if (msg.descriptions) Object.assign(gestureDescriptions, msg.descriptions);
-    if (msg.neutral_frames >= FRAMES_PER_SESSION && !S.neutralDone) {
+    if (msg.neutral_frames >= NEUTRAL_FRAMES && !S.neutralDone) {
       S.neutralDone   = true;
       S.neutralFrames = msg.neutral_frames;
       $('btn-neutral').style.display = 'none';
       $('neutral-ok').classList.remove('hidden');
+      $('btn-neutral-reset').classList.remove('hidden');
       $('neutral-fill').style.width = '100%';
       $('neutral-prog').classList.remove('hidden');
       $('step-gestures').classList.remove('locked');
@@ -2113,7 +2577,7 @@ function filterFace(raw) {
   const out = {};
   for (const [k, idx] of Object.entries(FACE_IDX)) {
     if (!raw[idx]) return null;
-    out[k] = [raw[idx].x, raw[idx].y];
+    out[k] = [raw[idx].x, raw[idx].y, raw[idx].z || 0];
   }
   return out;
 }
@@ -2121,7 +2585,7 @@ function filterHand(raw, handedness) {
   const out = { handedness };
   for (const [k, idx] of Object.entries(HAND_IDX)) {
     if (!raw[idx]) return null;
-    out[k] = [raw[idx].x, raw[idx].y];
+    out[k] = [raw[idx].x, raw[idx].y, raw[idx].z || 0];
   }
   return out;
 }
@@ -2225,6 +2689,17 @@ document.querySelectorAll('#bp-options .bp-toggle').forEach(t => {
 renderAgenda();
 renderGCards();
 updateAddBtn();
+
+/* ── ML Diagram overlay ───────────────────────────────────────── */
+$('btn-ml-diagram').addEventListener('click', () => {
+  $('ml-overlay').classList.add('open');
+});
+$('ml-close').addEventListener('click', () => {
+  $('ml-overlay').classList.remove('open');
+});
+$('ml-overlay').addEventListener('click', e => {
+  if (e.target === $('ml-overlay')) $('ml-overlay').classList.remove('open');
+});
 
 </script>
 </body>

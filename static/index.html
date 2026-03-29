@@ -172,6 +172,16 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
   letter-spacing: 0.16em; text-transform: uppercase;
 }
 
+.pali-logo {
+  position: absolute;
+  top: 24px;
+  left: 28px;
+  height: 48px; /* Adjust this to make it bigger/smaller */
+  z-index: 10;
+  /* This CSS filter turns the white background transparent! */
+  mix-blend-mode: multiply; 
+}
+
 /* Large action cards */
 .landing-cards {
   display: flex; gap: 16px; flex-wrap: wrap;
@@ -201,18 +211,18 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 .action-card:disabled { opacity: 0.38; cursor: not-allowed; }
 
 .action-card-icon {
-  width: 48px; height: 48px; border-radius: 50%;
+  width: 64px; height: 64px; border-radius: 50%;
   background: rgba(255,154,0,0.12);
   border: 1.5px solid rgba(255,154,0,0.22);
   display: flex; align-items: center; justify-content: center;
-  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; color: var(--orange);
+  font-size: 1.0rem; font-weight: 800; letter-spacing: 0.06em; color: var(--orange);
 }
 
 .action-card-label {
   font-size: 0.86rem; font-weight: 700; letter-spacing: 0.09em;
 }
 .action-card-sub {
-  font-size: 0.64rem; color: rgba(28,28,30,0.42);
+  font-size: 0.76rem; color: rgba(28,28,30,0.42);
   letter-spacing: 0.04em; line-height: 1.4; text-align: center;
 }
 
@@ -1118,6 +1128,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 </div>
 
 <div id="screen-landing" class="screen active">
+  <img src="/PALILogo.png" class="pali-logo" alt="PALI Logo" />
   <button class="ml-tab-btn" id="btn-ml-diagram">ML Pipeline</button>
   <div class="aura-rings">
     <div class="aura-ring"></div>
@@ -1412,7 +1423,7 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       <!-- ROW 1: Raw inputs -->
       <div class="ml-row">
         <div class="ml-node">
-          <div class="ml-box input">📷 Camera</div>
+          <div class="ml-box input"> Camera</div>
           <div class="ml-label">30fps video</div>
         </div>
       </div>
@@ -1425,13 +1436,13 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       <!-- ROW 2: MediaPipe detectors -->
       <div class="ml-row" style="gap:20px;">
         <div class="ml-node">
-          <div class="ml-box extract">😶 FaceLandmarker</div>
+          <div class="ml-box extract"> FaceLandmarker</div>
           <div class="ml-label">478 face points</div>
           <div class="ml-detail">mouth · eyes · brows · jaw</div>
         </div>
         <div class="ml-hline"></div>
         <div class="ml-node">
-          <div class="ml-box extract">🖐 HandLandmarker</div>
+          <div class="ml-box extract"> HandLandmarker</div>
           <div class="ml-label">21 pts × 2 hands</div>
           <div class="ml-detail">wrist · mcp · pip · tip</div>
         </div>
@@ -1557,17 +1568,17 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
       <!-- ROW 7: Output -->
       <div class="ml-row" style="gap:16px;">
         <div class="ml-node">
-          <div class="ml-box output" style="min-width:110px;">🔊 ElevenLabs TTS</div>
+          <div class="ml-box output" style="min-width:110px;"> ElevenLabs TTS</div>
           <div class="ml-detail">gesture phrase spoken aloud</div>
         </div>
         <div class="ml-hline" style="background:linear-gradient(90deg,transparent,rgba(255,100,120,0.2),transparent);"></div>
         <div class="ml-node">
-          <div class="ml-box output" style="min-width:110px;">📋 Description</div>
+          <div class="ml-box output" style="min-width:110px;"> Description</div>
           <div class="ml-detail">dominant movement labeled</div>
         </div>
         <div class="ml-hline" style="background:linear-gradient(90deg,transparent,rgba(255,100,120,0.2),transparent);"></div>
         <div class="ml-node">
-          <div class="ml-box output" style="min-width:110px;">🔒 2.5s Cooldown</div>
+          <div class="ml-box output" style="min-width:110px;"> 2.5s Cooldown</div>
           <div class="ml-detail">latch + holdoff prevents bounce</div>
         </div>
       </div>

@@ -26,7 +26,7 @@ Browser (MediaPipe WASM)
 
 - **Python 3.10+**
 - **Chrome or Edge** (WebGL + WebAssembly required for MediaPipe)
-- An **ElevenLabs account** — free tier works ([elevenlabs.io](https://elevenlabs.io))
+- An **ElevenLabs account** — API Access required for speech ([elevenlabs.io](https://elevenlabs.io))
 
 ---
 

@@ -11,22 +11,22 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from dotenv import load_dotenv
 
-# Ensure you have a .env file with ELEVENLABS_API_KEY=your_key_here
+
 load_dotenv()
 
 app = FastAPI()
 
-# ── Constants ─────────────────────────────────────────────────────────────────
+# Constants
 SESSIONS_REQUIRED      = 4
 FRAMES_PER_SESSION     = 50
-NEUTRAL_FRAMES         = 150  # more neutral variety = fewer false positives
+NEUTRAL_FRAMES         = 150  
 MIN_SESSIONS_TO_TRAIN  = 3
-DEBOUNCE_LEN         = 20   # frames in primary debounce queue (~0.67s at 30fps)
+DEBOUNCE_LEN         = 20   # frames in primary debounce queue
 SMOOTH_WINDOW        = 5    # temporal smoothing window (voted labels)
 CONFIDENCE_THRESH    = 0.65 # min avg probability to trigger
-PROB_WINDOW          = 10   # frames to average predict_proba over for disambiguation
+PROB_WINDOW          = 10   # frames to average predict_proba
 
-# ── State ─────────────────────────────────────────────────────────────────────
+#State 
 MODE = "NEUTRAL"
 model: Pipeline | None = None
 
@@ -54,8 +54,8 @@ feature_queue: deque = deque(maxlen=PROB_WINDOW)
 # The Edge Trigger Latch variables
 require_neutral_reset: bool = False
 neutral_reset_count:   int  = 0
-holdoff_count:         int  = 0   # frames to ignore after latch releases
-HOLDOFF_FRAMES               = 8  # ~0.27s of confirmed rest before re-accumulating
+holdoff_count:         int  = 0  
+HOLDOFF_FRAMES               = 8  
 
 active_ws: WebSocket | None = None
 
@@ -67,9 +67,9 @@ gesture_phrases: dict[str, str] = {
 
 gesture_descriptions: dict[str, str] = {}  
 
-# ── Raw Movement Descriptor ────────────────────────────────────────────────────
+#Raw Movement Descriptor
 _FEAT_DESC: list[tuple[str, str, str]] = [
-    # Face [0-7]  (eyes separate for wink; brows grouped bilaterally)
+    # Face [0-7]
     ("mouth",               "opened",       "closed"),
     ("jaw",                 "dropped",      "raised"),
     ("right eye",           "widened",      "narrowed"),
@@ -162,14 +162,14 @@ def describe_gesture(gesture_id: str) -> str:
 
     parts: list[tuple[float, str]] = []  # (score, phrase) — sorted by score descending
 
-    # ── Face features (indices 0-7): report individually, only the strongest ──
+    # Face features (indices 0-7): report individually, only the strongest
     face_deltas = [(i, delta[i]) for i in range(8) if abs(delta[i]) >= active_threshold]
     if face_deltas:
         best_i, best_d = max(face_deltas, key=lambda x: abs(x[1]))
         noun, pos, neg = _FEAT_DESC[best_i]
         parts.append((abs(best_d), f"{noun} {pos if best_d > 0 else neg}"))
 
-    # ── Hand features: group fingers by movement type ──
+    #Hand features: group fingers by movement type 
     for side, start, end in _HAND_REGIONS:
         block = delta[start:end]  # 12-element slice for this hand
 
@@ -215,7 +215,7 @@ def describe_gesture(gesture_id: str) -> str:
         result += "; " + result_phrases[1]
     return result
 
-# ── Feature Engineering ───────────────────────────────────────────────────────
+# Features
 def euclidean(a, b) -> float:
     return float(np.linalg.norm(np.array(a) - np.array(b)))
 
@@ -341,7 +341,7 @@ def build_feature_vector(face: dict | None, hands: list[dict]) -> list[float] | 
             return None
     return face_feats + hand_feats + presence
 
-# ── ML ────────────────────────────────────────────────────────────────────────
+# ML
 def center(vec: list[float]) -> list[float]:
     """Subtract the personal neutral mean so all features are relative to the user's rest pose."""
     if neutral_mean_vec is None:
@@ -415,7 +415,7 @@ def smoothed_predict(raw_label: str) -> str:
     counts = Counter(smooth_queue)
     return counts.most_common(1)[0][0]
 
-# ── Audio Delivery ─────────────────────────────────────────────────────────────
+# Audio Delivery
 async def fire_trigger(gesture_id: str, ws: WebSocket):
     phrase = gesture_phrases.get(gesture_id, f"Gesture {gesture_id} detected")
     try:
@@ -433,7 +433,7 @@ async def fire_trigger(gesture_id: str, ws: WebSocket):
     except Exception as e:
         await ws.send_text(json.dumps({"error": f"ElevenLabs error: {e}"}))
 
-# ── WebSocket Endpoint ─────────────────────────────────────────────────────────
+#WebSocket Endpoint
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global MODE, neutral_data, gesture_data, gesture_sessions
@@ -453,7 +453,7 @@ async def websocket_endpoint(websocket: WebSocket):
             raw = await websocket.receive_text()
             msg = json.loads(raw)
 
-            # ── Commands ──────────────────────────────────────────────────────
+            #Commands
             if "command" in msg:
                 cmd = msg["command"]
 
@@ -574,7 +574,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         }))
                 continue
 
-            # ── Landmark frame ────────────────────────────────────────────────
+            # Landmark frame
             face  = msg.get("face")
             hands = msg.get("hands", [])
 
@@ -634,7 +634,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     features = masked
                 smoothed = smoothed_predict(raw_pred)
 
-                # ── Hold-off: brief pause after latch releases ────────────────
+                # Hold-off: brief pause after latch releases 
                 if holdoff_count > 0:
                     holdoff_count -= 1
                     await websocket.send_text(json.dumps({
@@ -643,7 +643,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     }))
                     continue
 
-                # ── KNN gate: don't start accumulating while at rest ───────────
+                #KNN gate: don't start accumulating while at rest 
                 if len(pred_queue) == 0 and raw_pred == "neutral":
                     await websocket.send_text(json.dumps({
                         "status": "prediction",
@@ -651,7 +651,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     }))
                     continue
 
-                # ── 1. THE LATCH: Block triggers until fully returned to Neutral ──
+                # 1. THE LATCH: Block triggers until fully returned to Neutral 
                 if require_neutral_reset:
                     # FIX: Use 'smoothed' to prevent micro-jitters from restarting the counter
                     if smoothed == "neutral":
@@ -676,11 +676,11 @@ async def websocket_endpoint(websocket: WebSocket):
                     }))
                     continue
 
-                # ── 2. Normal Accumulation ("Going Up") ───────────────────────
+                # 2. Normal Accumulation ("Going Up")
                 feature_queue.append(features)
                 pred_queue.append(raw_pred)
 
-                # ── 3. The Trigger Gate ───────────────────────────────────────
+                # 3. The Trigger Gate
                 if len(pred_queue) == DEBOUNCE_LEN and smoothed != "neutral":
                     
                     if pred_queue.count(smoothed) >= DEBOUNCE_LEN - 8: 
@@ -690,7 +690,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         class_proba  = dict(zip(classes, avg_proba))
 
                         if smoothed in class_proba and class_proba[smoothed] >= CONFIDENCE_THRESH:
-                            # 🎯 FIRE TRIGGER & ENGAGE THE LATCH
+                            #Fire
                             require_neutral_reset = True 
                             
                             asyncio.create_task(fire_trigger(smoothed, websocket))

@@ -550,6 +550,28 @@ async def websocket_endpoint(websocket: WebSocket):
                         "phrases": gesture_phrases,
                         "descriptions": gesture_descriptions,
                     }))
+                elif cmd == "get_feature_stats":
+                    if not neutral_data or not gesture_data or neutral_mean_vec is None:
+                        await websocket.send_text(json.dumps({"status": "feature_stats", "ready": False}))
+                    else:
+                        neutral_arr = np.array(neutral_mean_vec)
+                        gestures_stats = {}
+                        for gid in gesture_data:
+                            g_mean = np.mean(gesture_data[gid], axis=0)
+                            delta = (g_mean - neutral_arr).tolist()
+                            mask = gesture_masks.get(gid, np.ones(len(neutral_mean_vec))).tolist()
+                            gestures_stats[gid] = {
+                                "frames": len(gesture_data[gid]),
+                                "delta": delta,
+                                "mask": mask,
+                                "description": gesture_descriptions.get(gid, "movement detected"),
+                            }
+                        await websocket.send_text(json.dumps({
+                            "status": "feature_stats",
+                            "ready": True,
+                            "neutral_frames": len(neutral_data),
+                            "gestures": gestures_stats,
+                        }))
                 continue
 
             # ── Landmark frame ────────────────────────────────────────────────

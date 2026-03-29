@@ -423,6 +423,105 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
 }
 
 /* ════════════════════════════════════════════════
+   ML OVERLAY — INNER TABS + DATA PANEL
+════════════════════════════════════════════════ */
+.ml-inner-tabs {
+  display: flex; gap: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 20px; padding: 4px;
+  margin: 0 auto 28px; width: fit-content;
+}
+.ml-inner-tab {
+  padding: 7px 22px; border-radius: 16px;
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.10em;
+  text-transform: uppercase; color: rgba(255,255,255,0.35);
+  transition: all 0.2s; cursor: pointer; border: none;
+  background: none; font-family: 'Montserrat', sans-serif;
+}
+.ml-inner-tab.active {
+  background: rgba(255,154,0,0.18);
+  color: var(--orange);
+  box-shadow: 0 0 12px rgba(255,154,0,0.15);
+}
+.ml-panel { display: none; }
+.ml-panel.active { display: block; }
+
+/* Data panel layout */
+.stat-no-data {
+  text-align: center; padding: 56px 24px;
+  color: rgba(255,255,255,0.22); font-size: 0.8rem; letter-spacing: 0.06em;
+}
+.stat-section-label {
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: rgba(255,154,0,0.5);
+  margin-bottom: 14px;
+}
+.stat-summary-row {
+  display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap;
+}
+.stat-summary-chip {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 10px 18px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.stat-chip-val {
+  font-size: 1.4rem; font-weight: 700; color: var(--orange); line-height: 1;
+}
+.stat-chip-lbl {
+  font-size: 0.58rem; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: rgba(255,255,255,0.28);
+}
+.stat-gesture-grid {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.stat-gesture-block {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,154,0,0.12);
+  border-radius: 14px; padding: 14px 16px;
+}
+.stat-gesture-header {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.stat-gesture-name {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.10em;
+  color: rgba(255,255,255,0.85);
+}
+.stat-gesture-desc {
+  font-size: 0.65rem; color: rgba(255,154,0,0.7); font-style: italic; flex: 1;
+}
+.stat-gesture-frames {
+  font-size: 0.6rem; color: rgba(255,255,255,0.25); letter-spacing: 0.05em;
+}
+.stat-feat-list { display: flex; flex-direction: column; gap: 5px; }
+.stat-feat-row { display: flex; align-items: center; gap: 10px; }
+.stat-feat-label {
+  font-size: 0.58rem; color: rgba(255,255,255,0.4); letter-spacing: 0.03em;
+  width: 136px; flex-shrink: 0; text-align: right;
+}
+.stat-bar-track {
+  flex: 1; height: 6px; background: rgba(255,255,255,0.06);
+  border-radius: 4px; overflow: hidden;
+}
+.stat-bar-fill { height: 100%; border-radius: 4px; }
+.stat-bar-fill.pos { background: var(--orange); }
+.stat-bar-fill.neg { background: rgba(100,160,255,0.72); }
+.stat-bar-val {
+  font-size: 0.57rem; color: rgba(255,255,255,0.22);
+  width: 38px; text-align: right; flex-shrink: 0;
+}
+.stat-mask-off { opacity: 0.25; }
+.stat-mask-badge {
+  font-size: 0.54rem; color: rgba(255,255,255,0.18);
+  letter-spacing: 0.06em; text-align: center; margin-top: 8px;
+  display: flex; gap: 16px; justify-content: flex-end;
+}
+.stat-mask-badge span { display: flex; align-items: center; gap: 5px; }
+.stat-mask-badge .swatch {
+  width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════════════
    SCREEN 2: TRAIN
 ════════════════════════════════════════════════ */
 .topbar {
@@ -1419,7 +1518,12 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
     <button class="ml-close" id="ml-close">✕</button>
     <div class="ml-diagram">
       <div class="ml-title">Gesture Recognition · ML Pipeline</div>
+      <div class="ml-inner-tabs">
+        <button class="ml-inner-tab active" data-tab="pipeline">Pipeline</button>
+        <button class="ml-inner-tab" data-tab="data">Training Data</button>
+      </div>
 
+      <div class="ml-panel active" data-panel="pipeline">
       <!-- ROW 1: Raw inputs -->
       <div class="ml-row">
         <div class="ml-node">
@@ -1583,6 +1687,14 @@ button { font-family: inherit; cursor: pointer; border: none; background: none; 
         </div>
       </div>
 
+      </div><!-- .ml-panel pipeline -->
+
+      <div class="ml-panel" data-panel="data">
+        <div id="stat-content">
+          <div class="stat-no-data">Train the model first — data will appear here.</div>
+        </div>
+      </div>
+
     </div><!-- .ml-diagram -->
   </div><!-- .ml-overlay-inner -->
 </div><!-- .ml-overlay -->
@@ -1675,6 +1787,27 @@ function cloneLM(raw) {
 }
 
 const gestureDescriptions = {};
+
+/* ── Feature name labels (must match main.py build_feature_vector order) ─── */
+const FEAT_NAMES = [
+  // Face [0-7]
+  'Mouth open', 'Jaw drop', 'Right eye open', 'Left eye open',
+  'Brow outer raise', 'Brow peak raise', 'Brow inner raise', 'Brow furrow',
+  // Left hand — lifts [8-12]
+  'L thumb lift', 'L index lift', 'L middle lift', 'L ring lift', 'L pinky lift',
+  // Left hand — curls [13-17]
+  'L thumb curl', 'L index curl', 'L middle curl', 'L ring curl', 'L pinky curl',
+  // Left hand — spreads [18-19]
+  'L thumb spread', 'L idx spread',
+  // Right hand — lifts [20-24]
+  'R thumb lift', 'R index lift', 'R middle lift', 'R ring lift', 'R pinky lift',
+  // Right hand — curls [25-29]
+  'R thumb curl', 'R index curl', 'R middle curl', 'R ring curl', 'R pinky curl',
+  // Right hand — spreads [30-31]
+  'R thumb spread', 'R idx spread',
+  // Presence flags [32-33]
+  'L hand present', 'R hand present',
+];
 
 /* ── Audio ────────────────────────────────────────────────────── */
 let audioCtx   = null;
@@ -2352,6 +2485,7 @@ function handleMsg(msg) {
 
   if (msg.status === 'trained') {
     if (msg.descriptions) Object.assign(gestureDescriptions, msg.descriptions);
+    sendCmd({command: 'get_feature_stats'});
 
     if (S.testMode) {
       updateModeBadge('INFERENCE');
@@ -2399,6 +2533,10 @@ function handleMsg(msg) {
     }
   }
 
+  if (msg.status === 'feature_stats' && msg.ready) {
+    renderFeatureStats(msg);
+  }
+
   if (msg.status === 'ok' && msg.mode) {
     updateModeBadge(msg.mode);
     if (msg.model_ready) S.isInference = true;
@@ -2414,6 +2552,95 @@ function handleMsg(msg) {
       $('step-gestures').classList.remove('locked');
     }
   }
+}
+
+/* ════════════════════════════════════════════
+   ML DATA TAB
+════════════════════════════════════════════ */
+function switchMlTab(tab) {
+  document.querySelectorAll('.ml-inner-tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === tab)
+  );
+  document.querySelectorAll('.ml-panel').forEach(p =>
+    p.classList.toggle('active', p.dataset.panel === tab)
+  );
+}
+
+function renderFeatureStats(stats) {
+  const el = $('stat-content');
+  if (!el) return;
+
+  const gestures = stats.gestures;
+  const gids = Object.keys(gestures);
+  const totalFrames = gids.reduce((s, g) => s + gestures[g].frames, 0);
+
+  let html = `
+    <div class="stat-section-label">Summary</div>
+    <div class="stat-summary-row">
+      <div class="stat-summary-chip">
+        <span class="stat-chip-val">${stats.neutral_frames}</span>
+        <span class="stat-chip-lbl">Neutral frames</span>
+      </div>
+      <div class="stat-summary-chip">
+        <span class="stat-chip-val">${gids.length}</span>
+        <span class="stat-chip-lbl">Gestures</span>
+      </div>
+      <div class="stat-summary-chip">
+        <span class="stat-chip-val">${totalFrames}</span>
+        <span class="stat-chip-lbl">Gesture frames</span>
+      </div>
+      <div class="stat-summary-chip">
+        <span class="stat-chip-val">${gids.length + 1}</span>
+        <span class="stat-chip-lbl">SVM classes</span>
+      </div>
+    </div>
+    <div class="stat-section-label">Feature Deltas from Neutral (top features per gesture)</div>
+    <div class="stat-gesture-grid">
+  `;
+
+  for (const gid of gids) {
+    const g = gestures[gid];
+    const delta = g.delta;   // 34-length
+    const mask  = g.mask;    // 34-length binary
+
+    // Rank features 0-31 (exclude presence flags) by absolute delta
+    const indexed = [];
+    for (let i = 0; i < 32; i++) indexed.push({i, d: delta[i], abs: Math.abs(delta[i])});
+    indexed.sort((a, b) => b.abs - a.abs);
+    const top = indexed.slice(0, 8);
+    const maxAbs = top[0]?.abs || 1;
+
+    const bars = top.map(({i, d, abs}) => {
+      const pct    = (abs / maxAbs * 100).toFixed(0);
+      const cls    = d >= 0 ? 'pos' : 'neg';
+      const active = mask[i] > 0.5;
+      const rowCls = active ? '' : 'stat-mask-off';
+      const sign   = d >= 0 ? '+' : '';
+      return `<div class="stat-feat-row ${rowCls}" title="${active ? 'Active in region mask' : 'Masked out (not used by SVM)'}">
+        <span class="stat-feat-label">${FEAT_NAMES[i]}</span>
+        <div class="stat-bar-track"><div class="stat-bar-fill ${cls}" style="width:${pct}%"></div></div>
+        <span class="stat-bar-val">${sign}${d.toFixed(2)}</span>
+      </div>`;
+    }).join('');
+
+    const label = GESTURE_LABEL[gid] || gid.toUpperCase().replace(/_/g, ' ');
+    html += `<div class="stat-gesture-block">
+      <div class="stat-gesture-header">
+        <span class="stat-gesture-name">${label}</span>
+        <span class="stat-gesture-desc">${g.description}</span>
+        <span class="stat-gesture-frames">${g.frames} frames</span>
+      </div>
+      <div class="stat-feat-list">${bars}</div>
+      <div class="stat-mask-badge">
+        <span><span class="swatch" style="background:var(--orange)"></span>used by SVM</span>
+        <span><span class="swatch" style="background:rgba(255,255,255,0.15)"></span>masked out</span>
+      </div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  el.innerHTML = html;
+  switchMlTab('data');
 }
 
 /* ════════════════════════════════════════════
@@ -2704,12 +2931,16 @@ updateAddBtn();
 /* ── ML Diagram overlay ───────────────────────────────────────── */
 $('btn-ml-diagram').addEventListener('click', () => {
   $('ml-overlay').classList.add('open');
+  if (S.isInference) sendCmd({command: 'get_feature_stats'});
 });
 $('ml-close').addEventListener('click', () => {
   $('ml-overlay').classList.remove('open');
 });
 $('ml-overlay').addEventListener('click', e => {
   if (e.target === $('ml-overlay')) $('ml-overlay').classList.remove('open');
+});
+document.querySelectorAll('.ml-inner-tab').forEach(t => {
+  t.addEventListener('click', () => switchMlTab(t.dataset.tab));
 });
 
 </script>
